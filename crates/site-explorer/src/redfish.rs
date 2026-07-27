@@ -139,8 +139,8 @@ impl RedfishClient {
         match service_root.vendor() {
             Some(vendor) if vendor != RedfishVendor::Unknown => Ok(vendor),
             _ => {
-                tracing::info!("No recognized vendor for BMC at {bmc_ip_address}");
-                Err(EndpointExplorationError::MissingVendor)
+                tracing::info!("No recognized vendor for BMC at {bmc_ip_address}, falling back to Unknown");
+                Ok(RedfishVendor::Unknown)
             }
         }
     }
