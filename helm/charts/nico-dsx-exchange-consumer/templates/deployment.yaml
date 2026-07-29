@@ -26,10 +26,6 @@ spec:
         - name: {{ include "nico-dsx-exchange-consumer.name" . }}
           image: "{{ include "nico-dsx-exchange-consumer.image" . }}"
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
-          securityContext:
-            capabilities:
-              add:
-                - SYS_PTRACE
           command:
             - /bin/sh
             - -c

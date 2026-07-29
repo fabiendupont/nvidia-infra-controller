@@ -47,10 +47,6 @@ spec:
               value: {{ $value | quote }}
             {{- end }}
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
-          securityContext:
-            capabilities:
-              add:
-                - SYS_PTRACE
           {{- with .Values.resources }}
           resources:
             {{- toYaml . | nindent 12 }}

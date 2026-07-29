@@ -34,10 +34,6 @@ spec:
               value: {{ $value | quote }}
             {{- end }}
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
-          securityContext:
-            capabilities:
-              add:
-                - SYS_PTRACE
           ports:
             - name: udp
               containerPort: {{ .Values.service.port }}

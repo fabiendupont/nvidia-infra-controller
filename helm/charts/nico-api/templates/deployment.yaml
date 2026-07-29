@@ -54,10 +54,6 @@ spec:
         - name: {{ include "nico-api.name" . }}
           image: "{{ include "nico-api.image" . }}"
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
-          securityContext:
-            capabilities:
-              add:
-                - SYS_PTRACE
           command:
             {{- toYaml .Values.command | nindent 12 }}
           env:
