@@ -146,6 +146,12 @@ certificate:
 
 migrationJob:
   sslMode: require
+  backoffLimit: 30
+  ## Optional init container that polls pg_isready before running migrations.
+  ## Override the image for air-gapped or private-registry environments.
+  waitForPostgres:
+    enabled: false
+    image: postgres:14.4-alpine
 
 ## Container command (override to customise startup).
 ## Picks /opt/nico/nico-api if present (renamed image), else /opt/carbide/carbide-api
