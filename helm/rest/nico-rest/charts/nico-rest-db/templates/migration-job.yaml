@@ -56,5 +56,9 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.secrets.dbCreds }}
                   key: password
+            {{- with .Values.db.sslMode }}
+            - name: PGSSLMODE
+              value: {{ . | quote }}
+            {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
