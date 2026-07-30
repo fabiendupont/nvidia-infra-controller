@@ -22,10 +22,10 @@ spec:
         {{- toYaml .Values.global.imagePullSecrets | nindent 8 }}
       serviceAccountName: nico-rest-cert-manager
       terminationGracePeriodSeconds: 5
+      {{- with .Values.podSecurityContext }}
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 65534
-        fsGroup: 65534
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: cert-manager
           image: "{{ include "nico-rest-cert-manager.image" . }}"
