@@ -142,3 +142,4 @@ spec:
         - name: nico-roots
           secret:
             secretName: nico-roots
+            optional: {{ .Values.nicoRoots.optional | default false }}

@@ -118,6 +118,11 @@ vaultClusterInfo: {}
 
 databaseConfig: {}
 
+## nico-roots CA secret volume. Set optional: true when the secret may not
+## exist at startup (e.g. ESO ExternalSecret not yet reconciled).
+nicoRoots:
+  optional: false
+
 externalService:
   enabled: false
   type: LoadBalancer
