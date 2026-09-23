@@ -42,6 +42,8 @@ hardware_health_reports = "MonitorOnly"
 [site_explorer]
 enabled = true
 create_machines = true
+# Optional Redfish push delivery. `{bmc_ip}` is replaced per BMC.
+# redfish_event_destination = "https://<reachable-api-host>:1079/redfish/events/{bmc_ip}"
 
 [node_auth]
 # Node (Scout / DPU-agent) authentication to the API.

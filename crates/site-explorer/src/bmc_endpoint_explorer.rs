@@ -113,6 +113,11 @@ impl AuthenticatedBmcClient {
             credential_client: CredentialClient::new(credential_manager),
         }
     }
+
+    fn with_event_destination(mut self, destination: Option<String>) -> Self {
+        self.redfish_client = self.redfish_client.with_event_destination(destination);
+        self
+    }
 }
 
 /// An `EndpointExplorer` which uses redfish APIs to query the endpoint
@@ -136,6 +141,29 @@ impl BmcEndpointExplorer {
         mode: SiteExplorerExploreMode,
         database_connection: Option<PgPool>,
     ) -> Self {
+        Self::new_with_event_destination(
+            bmc_client,
+            rotate_switch_nvos_credentials,
+            mode,
+            database_connection,
+            None,
+        )
+    }
+
+    /// Build an explorer that creates Redfish EventService subscriptions when
+    /// the destination is configured.
+    pub fn new_with_event_destination(
+        bmc_client: Arc<AuthenticatedBmcClient>,
+        rotate_switch_nvos_credentials: Arc<AtomicBool>,
+        mode: SiteExplorerExploreMode,
+        database_connection: Option<PgPool>,
+        redfish_event_destination: Option<String>,
+    ) -> Self {
+        let bmc_client = Arc::new(
+            (*bmc_client)
+                .clone()
+                .with_event_destination(redfish_event_destination),
+        );
         Self {
             bmc_client,
             rotate_switch_nvos_credentials,

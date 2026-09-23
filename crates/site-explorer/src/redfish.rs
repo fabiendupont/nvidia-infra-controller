@@ -60,6 +60,7 @@ pub(super) struct RedfishClient {
     /// and everything when `None`, uses the direct pools above exactly as
     /// before the proxy existed.
     proxied: Option<ProxiedPools>,
+    redfish_event_destination: Option<String>,
 }
 
 /// The pools that reach nico-bmc-proxy, handed to site-explorer only when
@@ -103,7 +104,13 @@ impl RedfishClient {
             redfish_client_pool,
             nv_redfish_client_pool,
             proxied,
+            redfish_event_destination: None,
         }
+    }
+
+    pub(super) fn with_event_destination(mut self, destination: Option<String>) -> Self {
+        self.redfish_event_destination = destination;
+        self
     }
 
     /// Client for an established endpoint. With `[bmc_proxy]` enabled it
@@ -509,7 +516,7 @@ impl RedfishClient {
     ) -> Result<EndpointExplorationReport, EndpointExplorationError> {
         let (nv_pool, credentials) = self.nv_pool_and_credentials(access);
         let service_root = nv_pool
-            .service_root_with_cache_predicate(bmc_ip_address, credentials, |root| {
+            .service_root_with_cache_predicate(bmc_ip_address, credentials.clone(), |root| {
                 let complete = root.root.chassis.is_some() && root.root.managers.is_some();
                 if !complete {
                     tracing::warn!(
@@ -525,6 +532,33 @@ impl RedfishClient {
             .map_err(|err| EndpointExplorationError::Other {
                 details: format!("Cannot Redfish service root: {err}"),
             })?;
+
+        if service_root.root.event_service.is_some()
+            && let Some(destination) = &self.redfish_event_destination
+        {
+            let destination = destination.replace(
+                "{bmc_ip}",
+                &bmc_ip_address.ip().to_string(),
+            );
+            match nv_pool
+                .ensure_event_subscription(bmc_ip_address, credentials, &destination)
+                .await
+            {
+                Ok(true) => tracing::info!(
+                    %bmc_ip_address,
+                    "Created Redfish event subscription"
+                ),
+                Ok(false) => tracing::debug!(
+                    %bmc_ip_address,
+                    "Redfish event subscription already exists"
+                ),
+                Err(error) => tracing::warn!(
+                    %bmc_ip_address,
+                    error = %error,
+                    "Unable to create Redfish event subscription; continuing with polling"
+                ),
+            }
+        }
 
         let mut report = bmc_explorer::nv_generate_exploration_report(
             service_root,

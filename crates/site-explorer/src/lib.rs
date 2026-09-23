@@ -140,11 +140,31 @@ pub fn new_bmc_explorer(
     mode: SiteExplorerExploreMode,
     database_connection: PgPool,
 ) -> Arc<BmcEndpointExplorer> {
-    BmcEndpointExplorer::new(
+    new_bmc_explorer_with_event_destination(
+        bmc_client,
+        rotate_switch_nvos_credentials,
+        mode,
+        database_connection,
+        None,
+    )
+}
+
+/// Build an endpoint explorer with an optional Redfish EventService
+/// destination. The destination is configured only when a reachable HTTP
+/// event receiver is available to trigger endpoint refreshes.
+pub fn new_bmc_explorer_with_event_destination(
+    bmc_client: Arc<AuthenticatedBmcClient>,
+    rotate_switch_nvos_credentials: Arc<AtomicBool>,
+    mode: SiteExplorerExploreMode,
+    database_connection: PgPool,
+    redfish_event_destination: Option<String>,
+) -> Arc<BmcEndpointExplorer> {
+    BmcEndpointExplorer::new_with_event_destination(
         bmc_client,
         rotate_switch_nvos_credentials,
         mode,
         Some(database_connection),
+        redfish_event_destination,
     )
     .into()
 }

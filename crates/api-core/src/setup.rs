@@ -513,7 +513,7 @@ pub(crate) async fn start_runtime(
         ipmi_tool.clone(),
         credential_manager.clone(),
     ));
-    let bmc_explorer = carbide_site_explorer::new_bmc_explorer(
+    let bmc_explorer = carbide_site_explorer::new_bmc_explorer_with_event_destination(
         bmc_client.clone(),
         carbide_config
             .site_explorer
@@ -521,6 +521,10 @@ pub(crate) async fn start_runtime(
             .clone(),
         carbide_config.site_explorer.explore_mode,
         db_pool.clone(),
+        carbide_config
+            .site_explorer
+            .redfish_event_destination
+            .clone(),
     );
     let endpoint_exploration_service = Arc::new(EndpointExplorationService::new(
         db_pool.clone(),

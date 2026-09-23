@@ -512,6 +512,11 @@ pub(crate) async fn start(
         None => grpc_router,
     };
     let router = axum::Router::new()
+        .route(
+            "/redfish/events/{bmc_ip}",
+            axum::routing::post(crate::handlers::site_explorer::receive_redfish_event),
+        )
+        .layer(AddExtensionLayer::new(api_service.clone()))
         .route("/", axum::routing::get(root_url))
         .merge(grpc_router)
         .route_service(

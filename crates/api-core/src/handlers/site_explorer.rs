@@ -18,6 +18,9 @@
 use std::net::IpAddr;
 use std::str::FromStr;
 
+use axum::body::Bytes;
+use axum::extract::{Extension, Path};
+use axum::http::StatusCode;
 use ::rpc::forge::{self as rpc, IsBmcInManagedHostResponse};
 use carbide_site_explorer::EndpointExplorationServiceError;
 use config_version::ConfigVersion;
@@ -29,6 +32,29 @@ use tonic::{Request, Response, Status};
 use crate::CarbideError;
 use crate::api::{Api, log_request_data};
 use crate::handlers::utils::resolve_bmc_address;
+
+/// Receives a Redfish EventService notification and prioritizes the matching
+/// endpoint for the next Site Explorer iteration. The event payload is only a
+/// wake-up signal; the normal authenticated Redfish crawl remains the source
+/// of truth for power state and inventory.
+pub(crate) async fn receive_redfish_event(
+    Extension(api): Extension<std::sync::Arc<Api>>,
+    Path(bmc_ip): Path<String>,
+    _payload: Bytes,
+) -> Result<StatusCode, StatusCode> {
+    let bmc_ip = bmc_ip.parse::<IpAddr>().map_err(|_| StatusCode::BAD_REQUEST)?;
+    let mut txn = api
+        .txn_begin()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    db::explored_endpoints::request_exploration_for_addresses(&[bmc_ip], txn.as_mut())
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    txn.commit()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(StatusCode::NO_CONTENT)
+}
 
 pub(crate) async fn find_explored_endpoint_ids(
     api: &Api,

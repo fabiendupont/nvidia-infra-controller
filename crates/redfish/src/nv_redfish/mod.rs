@@ -434,6 +434,90 @@ pub struct NvRedfishClientPool {
     client_tls: NvClientTls,
 }
 
+#[derive(Deserialize)]
+struct RawRedfishResource {
+    #[serde(rename = "@odata.id")]
+    odata_id: ODataId,
+    #[serde(flatten)]
+    properties: serde_json::Map<String, serde_json::Value>,
+}
+
+impl EntityTypeRef for RawRedfishResource {
+    fn odata_id(&self) -> &ODataId {
+        &self.odata_id
+    }
+
+    fn etag(&self) -> Option<&ODataETag> {
+        None
+    }
+}
+
+const EVENT_SUBSCRIPTIONS_URI: &str = "/redfish/v1/EventService/Subscriptions";
+
+impl NvRedfishClientPool {
+    /// Ensures that this BMC sends Redfish events to `destination`.
+    ///
+    /// The subscription collection is checked before creating a destination,
+    /// so repeated site-explorer runs do not create duplicate subscriptions.
+    /// BMCs that do not expose EventService return their normal Redfish error;
+    /// callers should treat that as an optional capability and retain polling.
+    pub async fn ensure_event_subscription(
+        &self,
+        bmc_address: SocketAddr,
+        credentials: Option<Credentials>,
+        destination: &str,
+    ) -> Result<bool, Error> {
+        let bmc_credentials = self.bmc_credentials(credentials)?;
+        self.refresh_mutual_client().await?;
+        let bmc = self.create_bmc(bmc_address, bmc_credentials, false)?;
+        let collection_id = ODataId::from(EVENT_SUBSCRIPTIONS_URI.to_string());
+        let collection = bmc
+            .get::<RawRedfishResource>(&collection_id)
+            .await
+            .map_err(Error::Bmc)?;
+
+        let mut existing_destinations = Vec::new();
+        if let Some(members) = collection.properties.get("Members").and_then(|v| v.as_array()) {
+            for member in members {
+                if let Some(member_destination) = member
+                    .get("Destination")
+                    .and_then(|v| v.as_str())
+                {
+                    existing_destinations.push(member_destination.to_string());
+                    continue;
+                }
+                let Some(member_id) = member.get("@odata.id").and_then(|v| v.as_str()) else {
+                    continue;
+                };
+                let member = bmc
+                    .get::<RawRedfishResource>(&ODataId::from(member_id.to_string()))
+                    .await
+                    .map_err(Error::Bmc)?;
+                if let Some(member_destination) = member
+                    .properties
+                    .get("Destination")
+                    .and_then(|v| v.as_str())
+                {
+                    existing_destinations.push(member_destination.to_string());
+                }
+            }
+        }
+
+        if existing_destinations.iter().any(|value| value == destination) {
+            return Ok(false);
+        }
+
+        let payload = serde_json::json!({
+            "Destination": destination,
+            "Protocol": "Redfish",
+            "Context": "nico-site-explorer",
+        });
+        let _: ModificationResponse<RawRedfishResource> =
+            bmc.create(&collection_id, &payload).await.map_err(Error::Bmc)?;
+        Ok(true)
+    }
+}
+
 #[derive(Default)]
 struct ServiceRootCache {
     roots: HashMap<PoolKey, CachedServiceRoot>,

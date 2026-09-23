@@ -391,6 +391,12 @@ plus thresholds for DPU agent compliance. Operators flip this from
   switches and power shelves (both on by default). A declared power shelf with
   no DHCP lease is discovered at its static `expected_power_shelves` IP as a
   matter of course.
+- `redfish_event_destination` — optional HTTP/HTTPS URL template for Redfish
+  event delivery. Site Explorer replaces `{bmc_ip}` with the sending BMC's IP,
+  creates one subscription when the BMC exposes EventService, and marks that
+  endpoint for the next scan when an event arrives. The destination must be
+  reachable from the BMC; polling remains the fallback when it is unset or the
+  BMC does not support EventService.
 
 Site Explorer auto-creation is additionally gated per device on a matching
 expected-hardware record (`expected_machines`, `expected_switches`,

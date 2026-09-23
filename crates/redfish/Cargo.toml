@@ -34,6 +34,7 @@ libredfish = { workspace = true }
 mac_address = { workspace = true }
 nv-redfish = { workspace = true, features = [
   "bmc-http",
+  "event-service",
   "oem-hpe",
   "session-service",
 ] }

@@ -183,6 +183,15 @@ pub struct SiteExplorerConfig {
     /// CompareResult for side-by-side validation).
     #[serde(default = "SiteExplorerConfig::default_explore_mode")]
     pub explore_mode: SiteExplorerExploreMode,
+
+    /// Optional Redfish EventService destination template. When set, Site
+    /// Explorer creates an idempotent `Redfish` subscription on each
+    /// discovered BMC. `{bmc_ip}` is replaced with that BMC's IP address, so
+    /// the usual value is `/redfish/events/{bmc_ip}` on the reachable NICo API
+    /// endpoint. Polling remains the fallback when this is unset or unsupported
+    /// by the BMC.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub redfish_event_destination: Option<String>,
 }
 
 impl Default for SiteExplorerConfig {
@@ -209,6 +218,7 @@ impl Default for SiteExplorerConfig {
             dpu_policy: None,
             deprecated_force_dpu_nic_mode: None,
             explore_mode: Self::default_explore_mode(),
+            redfish_event_destination: None,
         }
     }
 }
@@ -239,6 +249,7 @@ impl PartialEq for SiteExplorerConfig {
             dpu_policy,
             deprecated_force_dpu_nic_mode,
             explore_mode,
+            redfish_event_destination,
         } = self;
 
         enabled.load(AtomicOrdering::Relaxed) == other.enabled.load(AtomicOrdering::Relaxed)
@@ -271,6 +282,7 @@ impl PartialEq for SiteExplorerConfig {
             && *dpu_policy == other.dpu_policy
             && *deprecated_force_dpu_nic_mode == other.deprecated_force_dpu_nic_mode
             && *explore_mode == other.explore_mode
+            && *redfish_event_destination == other.redfish_event_destination
     }
 }
 
