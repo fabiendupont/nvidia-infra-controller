@@ -28,6 +28,7 @@ import (
 	dpsclient "github.com/NVIDIA/infra-controller/rest-api/api/pkg/client/dps"
 
 	sc "github.com/NVIDIA/infra-controller/rest-api/api/pkg/client/site"
+	"github.com/NVIDIA/infra-controller/rest-api/provider"
 
 	// Imports for API doc generation
 	_ "github.com/NVIDIA/infra-controller/rest-api/api/pkg/api/model"
@@ -143,8 +144,52 @@ func run(ctx context.Context) (retErr error) {
 		powerProvisioner = dps
 	}
 
+	registry := provider.NewRegistry()
+
+	svcAddr := os.Getenv("NICO_SERVICE_LISTEN_ADDR")
+	if svcAddr == "" {
+		svcAddr = ":8390"
+	}
+	serviceEndpoints := map[string]string{}
+	svcServer, err := provider.NewServiceServer(dbSession, svcAddr)
+	if err != nil {
+		log.Warn().Err(err).Msg("cross-domain service server unavailable")
+	} else {
+		go svcServer.Serve()
+		defer svcServer.Stop()
+		serviceEndpoints["networking"] = svcServer.Address()
+		serviceEndpoints["compute"] = svcServer.Address()
+	}
+
+	apiPathPrefix := "/org/:orgName/" + cfg.GetAPIName()
+	providerCtx := provider.ProviderContext{
+		DB:               dbSession,
+		Temporal:         tc,
+		TemporalNS:       tnc,
+		SiteClientPool:   scp,
+		Config:           cfg,
+		Registry:         registry,
+		APIPathPrefix:    apiPathPrefix,
+		ServiceEndpoints: serviceEndpoints,
+	}
+
+	if err := registry.InitAll(providerCtx); err != nil {
+		return fmt.Errorf("failed to initialize providers: %w", err)
+	}
+	log.Info().Int("count", len(registry.APIProviders())).Msg("providers initialized")
+
+	if ns := os.Getenv("NICO_K8S_DISCOVERY_NAMESPACE"); ns != "" {
+		kd, err := provider.NewKubernetesDiscovery(registry, ns, providerCtx)
+		if err != nil {
+			log.Warn().Err(err).Msg("kubernetes provider discovery unavailable")
+		} else {
+			kd.Start(ctx)
+			defer kd.Stop()
+		}
+	}
+
 	// Initialize API Echo instance
-	e := capis.InitAPIServer(cfg, dbSession, tc, tnc, scp, powerProvisioner)
+	e := capis.InitAPIServer(cfg, dbSession, tc, tnc, scp, powerProvisioner, registry)
 	e.Server.Addr = fmt.Sprintf(":%d", cfg.GetAPIPort())
 	servers := []*echo.Echo{e}
 
