@@ -1,0 +1,197 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package networking
+
+import (
+	"time"
+
+	"github.com/NVIDIA/infra-controller/provider-api/rest"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+	validationis "github.com/go-ozzo/ozzo-validation/v4/is"
+)
+
+const (
+	// SubnetBlockSizeMin is the minimum value of the SubnetSize field
+	SubnetBlockSizeMin = 8
+	// SubnetBlockSizeMax is the maximum value of the SubnetSize field
+	SubnetBlockSizeMax = 30
+
+	validationErrorIPv4BlockIDRequired    = "IPv4BlockID is required in request"
+	validationErrorIPv6SubnetNotSupported = "IPv6 Subnet creation is not supported at this time"
+	validationErrorSubnetBlockSizeMin     = "prefixLength must be at least 8"
+	validationErrorSubnetBlockSizeMax     = "prefixLength must be at most 30"
+)
+
+// APISubnetCreateRequest is the data structure to capture user request to create a new Subnet
+type APISubnetCreateRequest struct {
+	// Name is the name of the Subnet
+	Name string `json:"name"`
+	// Description is the description of the Subnet
+	Description *string `json:"description"`
+	// VpcID is the ID of the vpc containing the Subnet
+	VpcID string `json:"vpcId"`
+	// IPv4BlockID is the derived IPv4BlockId for the tenant from an allocation
+	IPv4BlockID *string `json:"ipv4BlockId"`
+	// IPv6BlockID is the derived IPv6BlockId for the tenant from an allocation
+	IPv6BlockID *string `json:"ipv6BlockId"`
+	// IPBlockSize the block size for the Subnet
+	// NOTE: This field has been deprecated
+	IPBlockSize *int `json:"ipBlockSize"`
+	// PrefixLength is the length of the prefix
+	PrefixLength int `json:"prefixLength"`
+}
+
+// Validate ensure the values passed in request are acceptable
+func (scr APISubnetCreateRequest) Validate() error {
+	err := validation.ValidateStruct(&scr,
+		validation.Field(&scr.Name,
+			validation.Required.Error(rest.ValidationErrorStringLength),
+			validation.Length(2, 256).Error(rest.ValidationErrorStringLength)),
+		validation.Field(&scr.Description,
+			validation.When(scr.Description != nil,
+				validation.Length(0, 1024).Error(rest.ValidationErrorDescriptionStringLength)),
+		),
+		validation.Field(&scr.VpcID,
+			validation.Required.Error(rest.ValidationErrorValueRequired),
+			validationis.UUID.Error(rest.ValidationErrorInvalidUUID)),
+		validation.Field(&scr.IPv4BlockID,
+			validation.Required.Error(validationErrorIPv4BlockIDRequired),
+			validation.When(scr.IPv4BlockID != nil, validationis.UUID.Error(rest.ValidationErrorInvalidUUID))),
+		validation.Field(&scr.IPv6BlockID,
+			// IPv6 is not supported yet
+			validation.Nil.Error(validationErrorIPv6SubnetNotSupported)),
+		validation.Field(&scr.PrefixLength,
+			validation.Required.Error(rest.ValidationErrorValueRequired),
+			validation.Min(SubnetBlockSizeMin).Error(validationErrorSubnetBlockSizeMin),
+			validation.Max(SubnetBlockSizeMax).Error(validationErrorSubnetBlockSizeMax)),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// APISubnetUpdateRequest is the data structure to capture user request to update a Subnet
+type APISubnetUpdateRequest struct {
+	// Name is the name of the Subnet
+	Name *string `json:"name"`
+	// Description is the description of the Subnet
+	Description *string `json:"description"`
+}
+
+// Validate ensure the values passed in request are acceptable
+func (sur APISubnetUpdateRequest) Validate() error {
+	return validation.ValidateStruct(&sur,
+		validation.Field(&sur.Name,
+			// length validation rule accepts empty string as valid, hence, required is needed
+			validation.When(sur.Name != nil, validation.Required.Error(rest.ValidationErrorStringLength)),
+			validation.When(sur.Name != nil, validation.Length(2, 256).Error(rest.ValidationErrorStringLength))),
+		validation.Field(&sur.Description,
+			validation.When(sur.Description != nil,
+				validation.Length(0, 1024).Error(rest.ValidationErrorDescriptionStringLength)),
+		),
+	)
+}
+
+// APISubnet is the data structure to capture API representation of a Subnet
+type APISubnet struct {
+	// ID is the unique UUID v4 identifier for the Subnet
+	ID string `json:"id"`
+	// Name is the name of the Subnet
+	Name string `json:"name"`
+	// Description is the description of the Subnet
+	Description *string `json:"description"`
+	// SiteID is the ID of the Site containing the Subnet
+	SiteID string `json:"siteId"`
+	// Site is the summary of the Site
+	Site *rest.APISiteSummary `json:"site,omitempty"`
+	// VpcID is the ID of the Vpc containing the Subnet
+	VpcID string `json:"vpcId"`
+	// Vpc is the summary of the VPC
+	Vpc *APIVpcSummary `json:"vpc,omitempty"`
+	// Controller network Segment ID is the ID of the Site Controller Network Segment corresponding to the Subnet
+	ControllerNetworkSegmentID *string `json:"controllerNetworkSegmentId"`
+	// IPv4Prefix is the prefix of the network in CIDR notation
+	IPv4Prefix *string `json:"ipv4Prefix"`
+	// IPv4BlockID is the derived IPv4BlockId for the tenant from an allocation
+	IPv4BlockID *string `json:"ipv4BlockId"`
+	// IPv4Block is the summary of the IPv4Block
+	IPv4Block *APIIPBlockSummary `json:"ipv4Block,omitempty"`
+	// IPv4Gateway is the address of the IPv4 gateway in the Subnet
+	IPv4Gateway *string `json:"ipv4Gateway"`
+	// IPv6Prefix is the prefix of the network in CIDR notation
+	IPv6Prefix *string `json:"ipv6Prefix"`
+	// IPv6BlockID is the derived IPv6BlockId for the tenant from an allocation
+	IPv6BlockID *string `json:"ipv6BlockId"`
+	// IPv4Block is the summary of the IPv4Block
+	IPv6Block *APIIPBlockSummary `json:"ipv6Block,omitempty"`
+	// IPv6Gateway is the address of the IPv6 gateway in the Subnet
+	IPv6Gateway *string `json:"ipv6Gateway"`
+	// PrefixLength is the length of the network prefix
+	PrefixLength int `json:"prefixLength"`
+	// RoutingType is the routing type of the Subnet
+	RoutingType *string `json:"routingType"`
+	// Status is the status of the Subnet
+	Status string `json:"status"`
+	// MTU is the maximum transmission unit of the Subnet
+	MTU *int `json:"mtu"`
+	// StatusHistory is the history of statuses for the Subnet
+	StatusHistory []rest.APIStatusDetail `json:"statusHistory"`
+	// CreatedAt indicates the ISO datetime string for when the entity was created
+	Created time.Time `json:"created"`
+	// UpdatedAt indicates the ISO datetime string for when the entity was last updated
+	Updated time.Time `json:"updated"`
+}
+
+// APISubnetStats is a data structure to capture information about Subnet stats at the API layer
+type APISubnetStats struct {
+	// Total is the total number of the Subnet object in Forge Cloud
+	Total int `json:"total"`
+	// Pending is the total number of pending Subnet object in Forge Cloud
+	Pending int `json:"pending"`
+	// Provisioning is the total number of provisioning Subnet object in Forge Cloud
+	Provisioning int `json:"provisioning"`
+	// Ready is the total number of ready Subnet object in Forge Cloud
+	Ready int `json:"ready"`
+	// Deleting is the total number of deleting Subnet object in Forge Cloud
+	Deleting int `json:"deleting"`
+	// Error is the total number of error Subnet object in Forge Cloud
+	Error int `json:"error"`
+}
+
+// APISubnetSummary is the data structure to capture API summary of a Subnet
+type APISubnetSummary struct {
+	// ID is the unique UUID v4 identifier for the Subnet
+	ID string `json:"id"`
+	// Name of the Subnet, only lowercase characters, digits, hyphens and cannot begin/end with hyphen
+	Name string `json:"name"`
+	// Controller network Segment ID is the ID of the Site Controller Network Segment corresponding to the Subnet
+	ControllerNetworkSegmentID *string `json:"controllerNetworkSegmentId"`
+	// IPv4Prefix is the prefix of the network in CIDR notation
+	IPv4Prefix *string `json:"ipv4Prefix"`
+	// IPv6Prefix is the prefix of the network in CIDR notation
+	IPv6Prefix *string `json:"ipv6Prefix"`
+	// PrefixLength is the length of the network prefix of this Subnet
+	PrefixLength int `json:"prefixLength"`
+	// RoutingType is the routing type of the Subnet
+	RoutingType *string `json:"routingType"`
+	// Status is the status of the Subnet
+	Status string `json:"status"`
+}

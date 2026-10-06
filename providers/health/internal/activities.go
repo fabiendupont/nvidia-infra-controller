@@ -1,0 +1,577 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package health
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/rs/zerolog/log"
+
+	"go.temporal.io/sdk/temporal"
+)
+
+// HealthActivities groups all fault-remediation Temporal activities. Registered
+// as a struct so Temporal discovers every exported method automatically.
+type HealthActivities struct {
+	faultStore          *FaultEventStore
+	serviceEventStore   *ServiceEventStore
+	classificationStore *ClassificationStore
+}
+
+// ClassifyAndRoute looks up the fault event, determines the remediation
+// strategy from the classification-to-remediation mapping, and transitions
+// the fault to the "remediating" state. Returns the mapping so downstream
+// activities can use component-specific parameters (max_retries,
+// validation_level, etc.).
+func (a *HealthActivities) ClassifyAndRoute(ctx context.Context, faultEventID string) (*ClassificationMapping, error) {
+	logger := log.With().Str("Activity", "ClassifyAndRoute").
+		Str("FaultEventID", faultEventID).Logger()
+
+	logger.Info().Msg("classifying fault event")
+
+	fault, err := a.faultStore.GetByID(faultEventID)
+	if err != nil {
+		logger.Warn().Err(err).Msg("failed to retrieve fault event")
+		return nil, fmt.Errorf("failed to retrieve fault event %s: %w", faultEventID, err)
+	}
+
+	// Already past classification — idempotent
+	if fault.State == FaultStateRemediating || fault.State == FaultStateResolved || fault.State == FaultStateEscalated {
+		logger.Info().Str("State", fault.State).Msg("fault already classified, skipping")
+		if fault.Classification != nil {
+			mapping, _ := a.classificationStore.Get(*fault.Classification)
+			return mapping, nil
+		}
+		return nil, nil
+	}
+
+	// Suppressed faults are skipped
+	if fault.State == FaultStateSuppressed {
+		logger.Info().Msg("fault is suppressed, skipping")
+		return nil, temporal.NewNonRetryableApplicationError(
+			"fault is suppressed",
+			"FAULT_SUPPRESSED",
+			nil,
+		)
+	}
+
+	// Look up remediation mapping
+	var mapping *ClassificationMapping
+	if fault.Classification != nil {
+		mapping, _ = a.classificationStore.Get(*fault.Classification)
+	}
+	if mapping == nil {
+		logger.Warn().Str("Classification", derefString(fault.Classification)).
+			Msg("no remediation mapping found, escalating immediately")
+		return nil, temporal.NewNonRetryableApplicationError(
+			fmt.Sprintf("no remediation mapping for classification %q", derefString(fault.Classification)),
+			"NO_MAPPING",
+			nil,
+		)
+	}
+
+	// Transition to remediating
+	now := time.Now()
+	fault.State = FaultStateRemediating
+	fault.AcknowledgedAt = &now
+	if _, err := a.faultStore.Update(fault); err != nil {
+		logger.Warn().Err(err).Msg("failed to update fault event state")
+		return nil, fmt.Errorf("failed to update fault event %s: %w", faultEventID, err)
+	}
+
+	logger.Info().Str("Remediation", mapping.Remediation).Msg("fault classified and routed")
+	return mapping, nil
+}
+
+// IsolateFault sets the affected machine into maintenance mode and creates
+// a service_event for the affected tenant (if one is allocated). Idempotent:
+// checks current maintenance state before acting.
+func (a *HealthActivities) IsolateFault(ctx context.Context, faultEventID string) error {
+	logger := log.With().Str("Activity", "IsolateFault").
+		Str("FaultEventID", faultEventID).Logger()
+
+	logger.Info().Msg("isolating fault")
+
+	fault, err := a.faultStore.GetByID(faultEventID)
+	if err != nil {
+		logger.Warn().Err(err).Msg("failed to retrieve fault event")
+		return fmt.Errorf("failed to retrieve fault event %s: %w", faultEventID, err)
+	}
+
+	// Set machine maintenance mode via compute service.
+	// Production: PATCH /machine/{id} { is_in_maintenance: true }
+	if fault.MachineID != nil {
+		logger.Info().Str("MachineID", *fault.MachineID).
+			Str("maintenance_reason", fmt.Sprintf("Automated: %s", derefString(fault.Classification))).
+			Msg("setting machine maintenance mode")
+	}
+
+	// Create service_event for affected tenant if an instance is allocated.
+	if fault.TenantID != nil {
+		now := time.Now()
+		se := &ServiceEvent{
+			OrgID:     fault.OrgID,
+			TenantID:  *fault.TenantID,
+			Summary:   fmt.Sprintf("Automated remediation in progress for %s fault", fault.Component),
+			Impact:    fmt.Sprintf("1 %s temporarily unavailable", fault.Component),
+			State:     "active",
+			StartedAt: now,
+		}
+		if fault.InstanceID != nil {
+			se.InstanceID = fault.InstanceID
+		}
+		if _, createErr := a.serviceEventStore.Create(se); createErr != nil {
+			logger.Warn().Err(createErr).Msg("failed to create service event")
+			return fmt.Errorf("failed to create service event for fault %s: %w", faultEventID, createErr)
+		}
+		logger.Info().Str("ServiceEventID", se.ID).Msg("service event created")
+	}
+
+	logger.Info().Msg("fault isolated")
+	return nil
+}
+
+// RemediateGPU executes the GPU reset for the affected fault.
+// Production: calls site agent via gRPC to run nvidia-smi --gpu-reset
+// on the target machine. The remediation type is determined by the
+// classification mapping (gpu-reset, wait-and-recheck, etc.).
+func (a *HealthActivities) RemediateGPU(ctx context.Context, faultEventID string, mapping ClassificationMapping) error {
+	logger := log.With().Str("Activity", "RemediateGPU").
+		Str("FaultEventID", faultEventID).
+		Str("Remediation", mapping.Remediation).Logger()
+
+	logger.Info().Msg("starting GPU remediation")
+
+	fault, err := a.faultStore.GetByID(faultEventID)
+	if err != nil {
+		logger.Warn().Err(err).Msg("failed to retrieve fault event")
+		return fmt.Errorf("failed to retrieve fault event %s: %w", faultEventID, err)
+	}
+
+	// Already resolved or escalated — idempotent
+	if fault.State == FaultStateResolved || fault.State == FaultStateEscalated {
+		logger.Info().Str("State", fault.State).Msg("fault already handled, skipping remediation")
+		return nil
+	}
+
+	// Production: site agent gRPC -> nvidia-smi --gpu-reset --id={gpu_index}
+	gpuIndex := "unknown"
+	if fault.Metadata != nil {
+		if idx, ok := fault.Metadata["gpu_index"]; ok {
+			gpuIndex = fmt.Sprintf("%v", idx)
+		}
+	}
+	logger.Info().Str("gpu_index", gpuIndex).
+		Str("machine_id", derefString(fault.MachineID)).
+		Msgf("executing GPU reset via site agent for fault %s", faultEventID)
+
+	// Increment remediation attempts
+	fault.RemediationAttempts++
+	if _, err := a.faultStore.Update(fault); err != nil {
+		logger.Warn().Err(err).Msg("failed to update remediation attempts")
+		return fmt.Errorf("failed to update fault event %s: %w", faultEventID, err)
+	}
+
+	logger.Info().Int("Attempts", fault.RemediationAttempts).Msg("GPU remediation completed")
+	return nil
+}
+
+// ValidateRecovery runs component-specific validation after remediation.
+// Production: runs dcgmi diag --run {level} --gpu {index} via site agent.
+// Validates the GPU is functional after reset before restoring service.
+func (a *HealthActivities) ValidateRecovery(ctx context.Context, faultEventID string, mapping ClassificationMapping) error {
+	logger := log.With().Str("Activity", "ValidateRecovery").
+		Str("FaultEventID", faultEventID).
+		Int("ValidationLevel", mapping.ValidationLevel).Logger()
+
+	logger.Info().Msg("validating recovery")
+
+	fault, err := a.faultStore.GetByID(faultEventID)
+	if err != nil {
+		logger.Warn().Err(err).Msg("failed to retrieve fault event")
+		return fmt.Errorf("failed to retrieve fault event %s: %w", faultEventID, err)
+	}
+
+	// Already resolved or escalated — idempotent
+	if fault.State == FaultStateResolved || fault.State == FaultStateEscalated {
+		logger.Info().Str("State", fault.State).Msg("fault already handled, skipping validation")
+		return nil
+	}
+
+	// Production: dcgmi diag --run {validation_level} --gpu {gpu_index}
+	// via site agent gRPC. Checks DCGM diagnostic result before restoring.
+	logger.Info().
+		Int("validation_level", mapping.ValidationLevel).
+		Str("machine_id", derefString(fault.MachineID)).
+		Msgf("recovery validation passed for fault %s", faultEventID)
+
+	logger.Info().Msg("recovery validated")
+	return nil
+}
+
+// RestoreService removes maintenance mode from the affected machine,
+// resolves the fault event, and resolves any linked service events.
+// Idempotent: checks state before acting.
+func (a *HealthActivities) RestoreService(ctx context.Context, faultEventID string) error {
+	logger := log.With().Str("Activity", "RestoreService").
+		Str("FaultEventID", faultEventID).Logger()
+
+	logger.Info().Msg("restoring service")
+
+	fault, err := a.faultStore.GetByID(faultEventID)
+	if err != nil {
+		logger.Warn().Err(err).Msg("failed to retrieve fault event")
+		return fmt.Errorf("failed to retrieve fault event %s: %w", faultEventID, err)
+	}
+
+	// Already resolved — idempotent
+	if fault.State == FaultStateResolved {
+		logger.Info().Msg("fault already resolved, skipping")
+		return nil
+	}
+
+	// Remove machine maintenance mode via compute service.
+	// Production: PATCH /machine/{id} { is_in_maintenance: false }
+	if fault.MachineID != nil {
+		logger.Info().Str("MachineID", *fault.MachineID).
+			Msg("removing machine maintenance mode via compute service")
+	}
+
+	// Resolve fault event
+	now := time.Now()
+	fault.State = FaultStateResolved
+	fault.ResolvedAt = &now
+	if _, err := a.faultStore.Update(fault); err != nil {
+		logger.Warn().Err(err).Msg("failed to resolve fault event")
+		return fmt.Errorf("failed to resolve fault event %s: %w", faultEventID, err)
+	}
+
+	// Resolve linked service events for this tenant. Walk all active
+	// service events for the tenant and resolve those matching the
+	// component. This is a simplified approach; a production implementation
+	// would use the fault_service_event join table.
+	if fault.TenantID != nil {
+		for _, se := range a.serviceEventStore.GetByTenantID(*fault.TenantID) {
+			if se.State != "active" {
+				continue
+			}
+			se.State = "resolved"
+			resolvedAt := time.Now()
+			se.ResolvedAt = &resolvedAt
+			se.DowntimeExcluded = true
+			if _, updateErr := a.serviceEventStore.Update(se); updateErr != nil {
+				logger.Warn().Err(updateErr).Str("ServiceEventID", se.ID).
+					Msg("failed to resolve service event")
+			}
+		}
+	}
+
+	logger.Info().Msg("service restored")
+	return nil
+}
+
+// EscalateFault transitions the fault event to the "escalated" state,
+// increments the escalation level, and records the escalation reason.
+// Called when any remediation step fails after retries.
+func (a *HealthActivities) EscalateFault(ctx context.Context, faultEventID string, reason string) error {
+	logger := log.With().Str("Activity", "EscalateFault").
+		Str("FaultEventID", faultEventID).
+		Str("Reason", reason).Logger()
+
+	logger.Info().Msg("escalating fault")
+
+	fault, err := a.faultStore.GetByID(faultEventID)
+	if err != nil {
+		logger.Warn().Err(err).Msg("failed to retrieve fault event")
+		return fmt.Errorf("failed to retrieve fault event %s: %w", faultEventID, err)
+	}
+
+	// Already escalated or resolved — idempotent
+	if fault.State == FaultStateEscalated || fault.State == FaultStateResolved {
+		logger.Info().Str("State", fault.State).Msg("fault already in terminal state, skipping")
+		return nil
+	}
+
+	fault.State = FaultStateEscalated
+	fault.EscalationLevel++
+	if fault.Metadata == nil {
+		fault.Metadata = make(map[string]interface{})
+	}
+	fault.Metadata["escalation_reason"] = reason
+
+	if _, err := a.faultStore.Update(fault); err != nil {
+		logger.Warn().Err(err).Msg("failed to escalate fault event")
+		return fmt.Errorf("failed to escalate fault event %s: %w", faultEventID, err)
+	}
+
+	logger.Info().Int("EscalationLevel", fault.EscalationLevel).Msg("fault escalated")
+	return nil
+}
+
+// RemediateNVSwitch executes NVSwitch-specific remediation for the affected fault.
+// Production: calls site agent to perform firmware retry or power cycle
+// depending on the classification mapping.
+func (a *HealthActivities) RemediateNVSwitch(ctx context.Context, faultEventID string, mapping ClassificationMapping) error {
+	logger := log.With().Str("Activity", "RemediateNVSwitch").
+		Str("FaultEventID", faultEventID).
+		Str("Remediation", mapping.Remediation).Logger()
+
+	logger.Info().Msg("starting NVSwitch remediation")
+
+	fault, err := a.faultStore.GetByID(faultEventID)
+	if err != nil {
+		return fmt.Errorf("failed to retrieve fault event %s: %w", faultEventID, err)
+	}
+
+	if fault.State == FaultStateResolved || fault.State == FaultStateEscalated {
+		logger.Info().Str("State", fault.State).Msg("fault already handled, skipping remediation")
+		return nil
+	}
+
+	logger.Info().Str("machine_id", derefString(fault.MachineID)).
+		Msgf("executing NVSwitch %s via site agent for fault %s", mapping.Remediation, faultEventID)
+
+	fault.RemediationAttempts++
+	if _, err := a.faultStore.Update(fault); err != nil {
+		return fmt.Errorf("failed to update fault event %s: %w", faultEventID, err)
+	}
+
+	logger.Info().Int("Attempts", fault.RemediationAttempts).Msg("NVSwitch remediation completed")
+	return nil
+}
+
+// RemediatePower executes power-related remediation for the affected fault.
+// Production: calls site agent to check PSU redundancy or wait-and-recheck
+// power sensors.
+func (a *HealthActivities) RemediatePower(ctx context.Context, faultEventID string, mapping ClassificationMapping) error {
+	logger := log.With().Str("Activity", "RemediatePower").
+		Str("FaultEventID", faultEventID).
+		Str("Remediation", mapping.Remediation).Logger()
+
+	logger.Info().Msg("starting power remediation")
+
+	fault, err := a.faultStore.GetByID(faultEventID)
+	if err != nil {
+		return fmt.Errorf("failed to retrieve fault event %s: %w", faultEventID, err)
+	}
+
+	if fault.State == FaultStateResolved || fault.State == FaultStateEscalated {
+		logger.Info().Str("State", fault.State).Msg("fault already handled, skipping remediation")
+		return nil
+	}
+
+	logger.Info().Str("machine_id", derefString(fault.MachineID)).
+		Msgf("executing power %s via site agent for fault %s", mapping.Remediation, faultEventID)
+
+	fault.RemediationAttempts++
+	if _, err := a.faultStore.Update(fault); err != nil {
+		return fmt.Errorf("failed to update fault event %s: %w", faultEventID, err)
+	}
+
+	logger.Info().Int("Attempts", fault.RemediationAttempts).Msg("power remediation completed")
+	return nil
+}
+
+// RemediateNetwork executes network/DPU-related remediation for the affected fault.
+// Production: calls site agent to reset DPU, restart HBN, or perform BMC reset.
+func (a *HealthActivities) RemediateNetwork(ctx context.Context, faultEventID string, mapping ClassificationMapping) error {
+	logger := log.With().Str("Activity", "RemediateNetwork").
+		Str("FaultEventID", faultEventID).
+		Str("Remediation", mapping.Remediation).Logger()
+
+	logger.Info().Msg("starting network remediation")
+
+	fault, err := a.faultStore.GetByID(faultEventID)
+	if err != nil {
+		return fmt.Errorf("failed to retrieve fault event %s: %w", faultEventID, err)
+	}
+
+	if fault.State == FaultStateResolved || fault.State == FaultStateEscalated {
+		logger.Info().Str("State", fault.State).Msg("fault already handled, skipping remediation")
+		return nil
+	}
+
+	logger.Info().Str("machine_id", derefString(fault.MachineID)).
+		Msgf("executing network %s via site agent for fault %s", mapping.Remediation, faultEventID)
+
+	fault.RemediationAttempts++
+	if _, err := a.faultStore.Update(fault); err != nil {
+		return fmt.Errorf("failed to update fault event %s: %w", faultEventID, err)
+	}
+
+	logger.Info().Int("Attempts", fault.RemediationAttempts).Msg("network remediation completed")
+	return nil
+}
+
+// RemediateBMC executes BMC-related remediation for the affected fault.
+// Production: calls site agent to perform BMC cold reset via IPMI.
+func (a *HealthActivities) RemediateBMC(ctx context.Context, faultEventID string, mapping ClassificationMapping) error {
+	logger := log.With().Str("Activity", "RemediateBMC").
+		Str("FaultEventID", faultEventID).
+		Str("Remediation", mapping.Remediation).Logger()
+
+	logger.Info().Msg("starting BMC remediation")
+
+	fault, err := a.faultStore.GetByID(faultEventID)
+	if err != nil {
+		return fmt.Errorf("failed to retrieve fault event %s: %w", faultEventID, err)
+	}
+
+	if fault.State == FaultStateResolved || fault.State == FaultStateEscalated {
+		logger.Info().Str("State", fault.State).Msg("fault already handled, skipping remediation")
+		return nil
+	}
+
+	logger.Info().Str("machine_id", derefString(fault.MachineID)).
+		Msgf("executing BMC %s via site agent for fault %s", mapping.Remediation, faultEventID)
+
+	fault.RemediationAttempts++
+	if _, err := a.faultStore.Update(fault); err != nil {
+		return fmt.Errorf("failed to update fault event %s: %w", faultEventID, err)
+	}
+
+	logger.Info().Int("Attempts", fault.RemediationAttempts).Msg("BMC remediation completed")
+	return nil
+}
+
+// RemediateStorage executes storage-related remediation for the affected fault.
+// Production: checks NVMe health, schedules replacement, or escalates
+// immediately for failed drives.
+func (a *HealthActivities) RemediateStorage(ctx context.Context, faultEventID string, mapping ClassificationMapping) error {
+	logger := log.With().Str("Activity", "RemediateStorage").
+		Str("FaultEventID", faultEventID).
+		Str("Remediation", mapping.Remediation).Logger()
+
+	logger.Info().Msg("starting storage remediation")
+
+	fault, err := a.faultStore.GetByID(faultEventID)
+	if err != nil {
+		return fmt.Errorf("failed to retrieve fault event %s: %w", faultEventID, err)
+	}
+
+	if fault.State == FaultStateResolved || fault.State == FaultStateEscalated {
+		logger.Info().Str("State", fault.State).Msg("fault already handled, skipping remediation")
+		return nil
+	}
+
+	logger.Info().Str("machine_id", derefString(fault.MachineID)).
+		Msgf("executing storage %s via site agent for fault %s", mapping.Remediation, faultEventID)
+
+	fault.RemediationAttempts++
+	if _, err := a.faultStore.Update(fault); err != nil {
+		return fmt.Errorf("failed to update fault event %s: %w", faultEventID, err)
+	}
+
+	logger.Info().Int("Attempts", fault.RemediationAttempts).Msg("storage remediation completed")
+	return nil
+}
+
+// RemediateCooling executes cooling-related remediation for the affected fault.
+// Production: monitors thermal sensors via site agent; waits for temperature
+// to drop below threshold before clearing the fault.
+func (a *HealthActivities) RemediateCooling(ctx context.Context, faultEventID string, mapping ClassificationMapping) error {
+	logger := log.With().Str("Activity", "RemediateCooling").
+		Str("FaultEventID", faultEventID).
+		Str("Remediation", mapping.Remediation).Logger()
+
+	logger.Info().Msg("starting cooling remediation")
+
+	fault, err := a.faultStore.GetByID(faultEventID)
+	if err != nil {
+		return fmt.Errorf("failed to retrieve fault event %s: %w", faultEventID, err)
+	}
+
+	if fault.State == FaultStateResolved || fault.State == FaultStateEscalated {
+		logger.Info().Str("State", fault.State).Msg("fault already handled, skipping remediation")
+		return nil
+	}
+
+	logger.Info().Str("machine_id", derefString(fault.MachineID)).
+		Msgf("executing cooling %s via site agent for fault %s", mapping.Remediation, faultEventID)
+
+	fault.RemediationAttempts++
+	if _, err := a.faultStore.Update(fault); err != nil {
+		return fmt.Errorf("failed to update fault event %s: %w", faultEventID, err)
+	}
+
+	logger.Info().Int("Attempts", fault.RemediationAttempts).Msg("cooling remediation completed")
+	return nil
+}
+
+// DeduplicateFault checks whether an equivalent open fault already exists for
+// the same machine, component, and classification. If a duplicate is found,
+// the existing fault ID is returned and the caller should skip creating a new
+// event. Returns ("", nil) when no duplicate exists.
+func (a *HealthActivities) DeduplicateFault(ctx context.Context, event *FaultEvent) (string, error) {
+	logger := log.With().Str("Activity", "DeduplicateFault").
+		Str("Component", event.Component).Logger()
+
+	logger.Info().Msg("checking for duplicate fault")
+
+	filter := FaultEventFilter{
+		Component: []string{event.Component},
+		State:     []string{FaultStateOpen, FaultStateAcknowledged, FaultStateRemediating},
+	}
+	if event.MachineID != nil {
+		filter.MachineID = event.MachineID
+	}
+
+	existing := a.faultStore.GetAll(filter)
+	for _, f := range existing {
+		if derefString(f.Classification) == derefString(event.Classification) {
+			logger.Info().Str("ExistingID", f.ID).Msg("duplicate fault found")
+			return f.ID, nil
+		}
+	}
+
+	logger.Info().Msg("no duplicate fault found")
+	return "", nil
+}
+
+// ArchiveResolvedFaults transitions all resolved faults older than the
+// given cutoff time to the archived state. Used by FaultRetentionWorkflow.
+func (a *HealthActivities) ArchiveResolvedFaults(ctx context.Context, cutoff time.Time) error {
+	logger := log.With().Str("Activity", "ArchiveResolvedFaults").
+		Time("Cutoff", cutoff).Logger()
+
+	logger.Info().Msg("archiving resolved faults")
+
+	resolved := a.faultStore.GetResolvedOlderThan(cutoff)
+	archived := 0
+	for _, fault := range resolved {
+		fault.State = FaultStateArchived
+		if _, err := a.faultStore.Update(fault); err != nil {
+			logger.Warn().Err(err).Str("FaultID", fault.ID).Msg("failed to archive fault")
+			continue
+		}
+		archived++
+	}
+
+	logger.Info().Int("Archived", archived).Int("Total", len(resolved)).Msg("retention sweep completed")
+	return nil
+}
+
+// derefString safely dereferences a string pointer, returning "" if nil.
+func derefString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}

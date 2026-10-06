@@ -1,0 +1,240 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package site
+
+import (
+	"errors"
+	"time"
+
+	"github.com/NVIDIA/infra-controller/provider-api/rest"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+	validationis "github.com/go-ozzo/ozzo-validation/v4/is"
+	"github.com/google/uuid"
+)
+
+// APIExpectedSwitchCreateRequest is the data structure to capture request to create a new ExpectedSwitch
+type APIExpectedSwitchCreateRequest struct {
+	// SiteID is the ID of the Site
+	SiteID string `json:"siteId"`
+	// BmcMacAddress is the MAC address of the expected switch's BMC
+	BmcMacAddress string `json:"bmcMacAddress"`
+	// DefaultBmcUsername is the username of the expected switch's BMC
+	DefaultBmcUsername *string `json:"defaultBmcUsername"`
+	// DefaultBmcPassword is the password of the expected switch's BMC
+	DefaultBmcPassword *string `json:"defaultBmcPassword"`
+	// SwitchSerialNumber is the serial number of the expected switch
+	SwitchSerialNumber string `json:"switchSerialNumber"`
+	// NvOsUsername is the NVOS username of the expected switch
+	NvOsUsername *string `json:"nvOsUsername"`
+	// NvOsPassword is the NVOS password of the expected switch
+	NvOsPassword *string `json:"nvOsPassword"`
+	// RackID is the optional rack identifier
+	RackID *string `json:"rackId"`
+	// Name is the optional name of the expected switch
+	Name *string `json:"name"`
+	// Manufacturer is the optional manufacturer of the expected switch
+	Manufacturer *string `json:"manufacturer"`
+	// Model is the optional model of the expected switch
+	Model *string `json:"model"`
+	// Description is the optional description of the expected switch
+	Description *string `json:"description"`
+	// FirmwareVersion is the optional firmware version of the expected switch
+	FirmwareVersion *string `json:"firmwareVersion"`
+	// SlotID is the optional slot identifier
+	SlotID *int32 `json:"slotId"`
+	// TrayIdx is the optional tray index
+	TrayIdx *int32 `json:"trayIdx"`
+	// HostID is the optional host identifier
+	HostID *int32 `json:"hostId"`
+	// Labels is the labels of the expected switch
+	Labels map[string]string `json:"labels"`
+}
+
+// Validate ensure the values passed in request are acceptable
+func (escr *APIExpectedSwitchCreateRequest) Validate() error {
+	err := validation.ValidateStruct(escr,
+		validation.Field(&escr.SiteID,
+			validation.Required.Error(rest.ValidationErrorValueRequired),
+			validationis.UUID.Error(rest.ValidationErrorInvalidUUID)),
+		validation.Field(&escr.BmcMacAddress,
+			validation.Required.Error(rest.ValidationErrorValueRequired),
+			validationis.MAC),
+		validation.Field(&escr.DefaultBmcUsername,
+			validation.Length(0, 16).Error("BMC username must be 16 characters or less")),
+		validation.Field(&escr.DefaultBmcPassword,
+			validation.Length(0, 20).Error("BMC password must be 20 characters or less")),
+		validation.Field(&escr.SwitchSerialNumber,
+			validation.Required.Error(rest.ValidationErrorValueRequired),
+			validation.Match(rest.NotAllWhitespaceRegexp).Error("Switch serial number consists only of whitespace"),
+			validation.Length(1, 32).Error("Switch serial number must be 32 characters or less")),
+		validation.Field(&escr.RackID,
+			validation.NilOrNotEmpty.Error("RackID cannot be empty")),
+		validation.Field(&escr.Name,
+			validation.NilOrNotEmpty.Error("Name cannot be empty")),
+		validation.Field(&escr.Manufacturer,
+			validation.NilOrNotEmpty.Error("Manufacturer cannot be empty")),
+		validation.Field(&escr.Model,
+			validation.NilOrNotEmpty.Error("Model cannot be empty")),
+		validation.Field(&escr.Description,
+			validation.NilOrNotEmpty.Error("Description cannot be empty")),
+		validation.Field(&escr.FirmwareVersion,
+			validation.NilOrNotEmpty.Error("FirmwareVersion cannot be empty")),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if err := rest.ValidateLabels(escr.Labels); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// APIExpectedSwitchUpdateRequest is the data structure to capture user request to update an ExpectedSwitch
+type APIExpectedSwitchUpdateRequest struct {
+	// ID is required for batch updates (must be empty or match path value for single update)
+	ID *string `json:"id"`
+	// BmcMacAddress is the MAC address of the expected switch's BMC
+	BmcMacAddress *string `json:"bmcMacAddress"`
+	// DefaultBmcUsername is the username of the expected switch's BMC
+	DefaultBmcUsername *string `json:"defaultBmcUsername"`
+	// DefaultBmcPassword is the password of the expected switch's BMC
+	DefaultBmcPassword *string `json:"defaultBmcPassword"`
+	// SwitchSerialNumber is the serial number of the expected switch
+	SwitchSerialNumber *string `json:"switchSerialNumber"`
+	// NvOsUsername is the NVOS username of the expected switch
+	NvOsUsername *string `json:"nvOsUsername"`
+	// NvOsPassword is the NVOS password of the expected switch
+	NvOsPassword *string `json:"nvOsPassword"`
+	// RackID is the optional rack identifier
+	RackID *string `json:"rackId"`
+	// Name is the optional name of the expected switch
+	Name *string `json:"name"`
+	// Manufacturer is the optional manufacturer of the expected switch
+	Manufacturer *string `json:"manufacturer"`
+	// Model is the optional model of the expected switch
+	Model *string `json:"model"`
+	// Description is the optional description of the expected switch
+	Description *string `json:"description"`
+	// FirmwareVersion is the optional firmware version of the expected switch
+	FirmwareVersion *string `json:"firmwareVersion"`
+	// SlotID is the optional slot identifier
+	SlotID *int32 `json:"slotId"`
+	// TrayIdx is the optional tray index
+	TrayIdx *int32 `json:"trayIdx"`
+	// HostID is the optional host identifier
+	HostID *int32 `json:"hostId"`
+	// Labels is the labels of the expected switch
+	Labels map[string]string `json:"labels"`
+}
+
+// Validate ensure the values passed in request are acceptable
+func (esur *APIExpectedSwitchUpdateRequest) Validate() error {
+	if esur.ID != nil {
+		if *esur.ID == "" {
+			return validation.Errors{
+				"id": errors.New("ID cannot be empty"),
+			}
+		}
+		if _, err := uuid.Parse(*esur.ID); err != nil {
+			return validation.Errors{
+				"id": errors.New("ID must be a valid UUID"),
+			}
+		}
+	}
+
+	err := validation.ValidateStruct(esur,
+		validation.Field(&esur.DefaultBmcUsername,
+			validation.NilOrNotEmpty.Error("BMC Username cannot be empty"),
+			validation.When(esur.DefaultBmcUsername != nil && *esur.DefaultBmcUsername != "",
+				validation.Match(rest.NotAllWhitespaceRegexp).Error("BMC Username consists only of whitespace")),
+			validation.Length(1, 16).Error("BMC Username must be 1-16 characters")),
+		validation.Field(&esur.DefaultBmcPassword,
+			validation.NilOrNotEmpty.Error("BMC Password cannot be empty"),
+			validation.When(esur.DefaultBmcPassword != nil && *esur.DefaultBmcPassword != "",
+				validation.Match(rest.NotAllWhitespaceRegexp).Error("BMC Password consists only of whitespace")),
+			validation.Length(1, 20).Error("BMC Password must be 1-20 characters")),
+		validation.Field(&esur.SwitchSerialNumber,
+			validation.NilOrNotEmpty.Error("Switch Serial Number cannot be empty"),
+			validation.When(esur.SwitchSerialNumber != nil && *esur.SwitchSerialNumber != "",
+				validation.Match(rest.NotAllWhitespaceRegexp).Error("Switch Serial Number consists only of whitespace")),
+			validation.Length(1, 32).Error("Switch Serial Number must be 1-32 characters")),
+		validation.Field(&esur.RackID,
+			validation.NilOrNotEmpty.Error("RackID cannot be empty")),
+		validation.Field(&esur.Name,
+			validation.NilOrNotEmpty.Error("Name cannot be empty")),
+		validation.Field(&esur.Manufacturer,
+			validation.NilOrNotEmpty.Error("Manufacturer cannot be empty")),
+		validation.Field(&esur.Model,
+			validation.NilOrNotEmpty.Error("Model cannot be empty")),
+		validation.Field(&esur.Description,
+			validation.NilOrNotEmpty.Error("Description cannot be empty")),
+		validation.Field(&esur.FirmwareVersion,
+			validation.NilOrNotEmpty.Error("FirmwareVersion cannot be empty")),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if err := rest.ValidateLabels(esur.Labels); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// APIExpectedSwitch is the data structure to capture API representation of an ExpectedSwitch
+type APIExpectedSwitch struct {
+	// ID is the ID of this Expected Switch
+	ID uuid.UUID `json:"id"`
+	// BmcMacAddress is the MAC address of the expected switch's BMC
+	BmcMacAddress string `json:"bmcMacAddress"`
+	// SiteID is the ID of the site this switch belongs to
+	SiteID uuid.UUID `json:"siteId"`
+	// Site is the site information
+	Site *APISite `json:"site,omitempty"`
+	// SwitchSerialNumber is the serial number of the expected switch
+	SwitchSerialNumber string `json:"switchSerialNumber"`
+	// RackID is the optional rack identifier
+	RackID *string `json:"rackId"`
+	// Name is the optional name of the expected switch
+	Name *string `json:"name"`
+	// Manufacturer is the optional manufacturer of the expected switch
+	Manufacturer *string `json:"manufacturer"`
+	// Model is the optional model of the expected switch
+	Model *string `json:"model"`
+	// Description is the optional description of the expected switch
+	Description *string `json:"description"`
+	// FirmwareVersion is the optional firmware version of the expected switch
+	FirmwareVersion *string `json:"firmwareVersion"`
+	// SlotID is the optional slot identifier
+	SlotID *int32 `json:"slotId"`
+	// TrayIdx is the optional tray index
+	TrayIdx *int32 `json:"trayIdx"`
+	// HostID is the optional host identifier
+	HostID *int32 `json:"hostId"`
+	// Labels is the labels of the expected switch
+	Labels map[string]string `json:"labels"`
+	// Created indicates the ISO datetime string for when the ExpectedSwitch was created
+	Created time.Time `json:"created"`
+	// Updated indicates the ISO datetime string for when the ExpectedSwitch was last updated
+	Updated time.Time `json:"updated"`
+}
