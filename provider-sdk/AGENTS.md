@@ -1,0 +1,1 @@
+This module provides the server scaffold, TLS helpers, Temporal client helpers, Prometheus metrics server, and database utilities (including schema-per-provider PostgreSQL support) that NICo provider authors import. See the main AGENTS.md for repository overview.

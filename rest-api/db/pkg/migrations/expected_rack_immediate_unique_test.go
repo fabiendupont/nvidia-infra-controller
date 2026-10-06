@@ -27,11 +27,19 @@ func TestExpectedRackImmediateUniqueUpMigration(t *testing.T) {
 	provider := model.TestBuildInfrastructureProvider(t, session, "provider", "rack-unique", user)
 	site := model.TestBuildSite(t, session, provider, "site", user)
 	otherSite := model.TestBuildSite(t, session, provider, "other-site", user)
+	// Apply the prerequisite expected_rack migration via the migrator so the
+	// call is compatible with bun's internalMigrationFunc signature (changed
+	// from func(ctx,db) to func(ctx,migrator,migration) in bun v1.2.18).
+	prereq := migrate.NewMigrations()
 	for _, migration := range Migrations.Sorted() {
 		if migration.Name == "20260429100000" {
-			require.NoError(t, migration.Up(ctx, session.DB))
+			prereq.Add(migration)
 		}
 	}
+	prereqMigrator := migrate.NewMigrator(session.DB, prereq, migrate.WithMarkAppliedOnSuccess(true))
+	require.NoError(t, prereqMigrator.Init(ctx))
+	_, err := prereqMigrator.Migrate(ctx)
+	require.NoError(t, err)
 	dao := model.NewExpectedRackDAO(session)
 	seed := model.ExpectedRackCreateInput{
 		ExpectedRackID: uuid.New(), SiteID: site.ID, RackID: "existing-rack",

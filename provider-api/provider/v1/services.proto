@@ -1,0 +1,132 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package nico.provider.v1;
+
+option go_package = "github.com/NVIDIA/infra-controller/provider-api/provider/v1;providerv1";
+
+// NicoNetworkingService exposes networking resource queries for cross-domain
+// lookups by external providers.
+service NicoNetworkingService {
+  // GetVpcByID returns a single VPC by its UUID.
+  rpc GetVpcByID(GetVpcByIDRequest) returns (VpcResponse);
+
+  // GetSubnets returns subnets matching the given VPC ID.
+  rpc GetSubnets(GetSubnetsRequest) returns (SubnetListResponse);
+}
+
+// NicoComputeService exposes compute resource queries for cross-domain
+// lookups by external providers.
+service NicoComputeService {
+  // GetInstanceByID returns a single instance by its UUID.
+  rpc GetInstanceByID(GetInstanceByIDRequest) returns (InstanceResponse);
+
+  // GetMachineByID returns a single machine by its string ID.
+  rpc GetMachineByID(GetMachineByIDRequest) returns (MachineResponse);
+}
+
+// ---------- Networking messages ----------
+
+message GetVpcByIDRequest {
+  string id = 1;
+}
+
+message VpcResponse {
+  Vpc vpc = 1;
+}
+
+message Vpc {
+  string id = 1;
+  string name = 2;
+  string org = 3;
+  string infrastructure_provider_id = 4;
+  string tenant_id = 5;
+  string site_id = 6;
+  string status = 7;
+  string network_virtualization_type = 8;
+  string routing_profile = 9;
+  string network_security_group_id = 10;
+  map<string, string> labels = 11;
+}
+
+message GetSubnetsRequest {
+  string vpc_id = 1;
+}
+
+message SubnetListResponse {
+  repeated Subnet subnets = 1;
+  int32 total = 2;
+}
+
+message Subnet {
+  string id = 1;
+  string name = 2;
+  string org = 3;
+  string site_id = 4;
+  string vpc_id = 5;
+  string tenant_id = 6;
+  string ipv4_prefix = 7;
+  string ipv4_gateway = 8;
+  string ipv6_prefix = 9;
+  string ipv6_gateway = 10;
+  int32 prefix_length = 11;
+  string status = 12;
+}
+
+// ---------- Compute messages ----------
+
+message GetInstanceByIDRequest {
+  string id = 1;
+}
+
+message InstanceResponse {
+  Instance instance = 1;
+}
+
+message Instance {
+  string id = 1;
+  string name = 2;
+  string tenant_id = 3;
+  string infrastructure_provider_id = 4;
+  string site_id = 5;
+  string vpc_id = 6;
+  string machine_id = 7;
+  string status = 8;
+  string hostname = 9;
+  map<string, string> labels = 10;
+}
+
+message GetMachineByIDRequest {
+  string id = 1;
+}
+
+message MachineResponse {
+  Machine machine = 1;
+}
+
+message Machine {
+  string id = 1;
+  string infrastructure_provider_id = 2;
+  string site_id = 3;
+  string instance_type_id = 4;
+  string status = 5;
+  bool is_assigned = 6;
+  string hostname = 7;
+  map<string, string> labels = 8;
+}

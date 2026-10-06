@@ -1,0 +1,56 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package compute
+
+import (
+	"time"
+
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+)
+
+// APIMachineInstanceTypeCreateRequest is the data structure to capture user request to create a new MachineInstanceType
+type APIMachineInstanceTypeCreateRequest struct {
+	// MachineID is the ID of the Machine
+	MachineIDs []string `json:"machineIds"`
+}
+
+// Validate ensure the values passed in request are acceptable
+func (mitcr APIMachineInstanceTypeCreateRequest) Validate() error {
+	err := validation.ValidateStruct(&mitcr,
+		validation.Field(&mitcr.MachineIDs,
+			validation.Required.Error("at least one machine ID is required"),
+		),
+	)
+	return err
+}
+
+// APIMachineInstanceType is the data structure to capture Machine Instance Type
+type APIMachineInstanceType struct {
+	// ID is the unique UUID v4 identifier for the Machine Instance Type
+	ID string `json:"id"`
+	// MachineID is the ID of the associated Machine
+	MachineID string `json:"machineId"`
+	// InstanceTypeID is the ID of the associated Instance Type
+	InstanceTypeID string `json:"instanceTypeId"`
+	// Deprecations is the list of deprecation messages denoting fields which are being deprecated
+	Deprecations []APIDeprecation `json:"deprecations,omitempty"`
+	// Created is the date and time the Machine Instance Type was created
+	Created time.Time `json:"created"`
+	// Updated is the date and time the Machine Instance Type was last updated
+	Updated time.Time `json:"updated"`
+}
