@@ -6,6 +6,7 @@ module github.com/NVIDIA/infra-controller/rest-api
 go 1.26.4
 
 require (
+	github.com/NVIDIA/infra-controller/provider-api v0.0.0-00010101000000-000000000000
 	connectrpc.com/connect v1.20.0
 	connectrpc.com/grpchealth v1.4.0
 	connectrpc.com/grpcreflect v1.3.0
@@ -470,6 +471,8 @@ require (
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
 )
+
+replace github.com/NVIDIA/infra-controller/provider-api => ../provider-api
 
 tool (
 	github.com/bufbuild/buf/cmd/buf
