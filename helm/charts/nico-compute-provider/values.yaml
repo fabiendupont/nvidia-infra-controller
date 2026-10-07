@@ -1,0 +1,70 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+global:
+  image:
+    repository: ""
+    tag: ""
+    pullPolicy: IfNotPresent
+  imagePullSecrets:
+    - name: image-pull-secret
+  certificate:
+    issuerRef:
+      kind: ClusterIssuer
+      name: carbide-rest-ca-issuer
+      group: cert-manager.io
+
+replicaCount: 1
+
+nameOverride: ""
+namespaceOverride: ""
+
+image:
+  # Set to an image name when global.image.repository is empty (e.g. local Kind dev).
+  name: nico-compute-provider
+  # Override image.name with a fully qualified image reference for standalone use.
+  override: ""
+
+service:
+  name: nico-compute-provider
+  type: ClusterIP
+  port: 9443
+
+resources:
+  requests:
+    memory: "64Mi"
+    cpu: "50m"
+  limits:
+    memory: "256Mi"
+    cpu: "250m"
+
+certificate:
+  enabled: true
+  name: nico-compute-provider-certs
+  secretName: nico-compute-provider-certs
+  duration: 720h
+  renewBefore: 360h
+  subject:
+    organizations: []
+  privateKey:
+    algorithm: ECDSA
+    size: 384
+  uris: []
+
+# Environment variables passed to the provider container.
+envConfig:
+  LISTEN_ADDR: ":9443"
+  # DB_HOST, DB_PORT, DB_NAME, DB_USER set these for persistent fault storage.
+  # DB_PASSWORD should come from a Secret (see db.passwordSecretName).
+
+db:
+  host: ""
+  port: "5432"
+  name: "nico"
+  user: "nico"
+  # Name of a Secret with key "password" holding the DB password.
+  passwordSecretName: ""
+
+temporal:
+  endpoint: ""
+  namespace: "default"

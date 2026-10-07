@@ -57,4 +57,40 @@ func (p *SiteProvider) RegisterRoutes(group *echo.Group) {
 	group.Add(http.MethodGet, prefix+"/expected-switch/:id", apiHandler.NewGetExpectedSwitchHandler(p.dbSession, p.cfg).Handle)
 	group.Add(http.MethodPatch, prefix+"/expected-switch/:id", apiHandler.NewUpdateExpectedSwitchHandler(p.dbSession, p.scp, p.cfg).Handle)
 	group.Add(http.MethodDelete, prefix+"/expected-switch/:id", apiHandler.NewDeleteExpectedSwitchHandler(p.dbSession, p.scp, p.cfg).Handle)
+
+	// ExpectedMachine bulk/label operations
+	group.Add(http.MethodPost, prefix+"/expected-machine/batch", apiHandler.NewCreateExpectedMachinesHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodPatch, prefix+"/expected-machine/batch", apiHandler.NewUpdateExpectedMachinesHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodPut, prefix+"/expected-machine/all", apiHandler.NewReplaceAllExpectedMachinesHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodDelete, prefix+"/expected-machine/all", apiHandler.NewDeleteAllExpectedMachinesHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodGet, prefix+"/expected-machine/label/key", apiHandler.NewGetAllExpectedMachineLabelKeyHandler(p.dbSession).Handle)
+	group.Add(http.MethodGet, prefix+"/expected-machine/label/key/:key/value", apiHandler.NewGetAllExpectedMachineLabelValueHandler(p.dbSession).Handle)
+
+	// ExpectedPowerShelf bulk operations
+	group.Add(http.MethodPut, prefix+"/expected-power-shelf/all", apiHandler.NewReplaceAllExpectedPowerShelvesHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodDelete, prefix+"/expected-power-shelf/all", apiHandler.NewDeleteAllExpectedPowerShelvesHandler(p.dbSession, p.scp, p.cfg).Handle)
+
+	// ExpectedRack endpoints
+	group.Add(http.MethodPost, prefix+"/expected-rack", apiHandler.NewCreateExpectedRackHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodGet, prefix+"/expected-rack", apiHandler.NewGetAllExpectedRackHandler(p.dbSession, p.cfg).Handle)
+	group.Add(http.MethodPut, prefix+"/expected-rack/all", apiHandler.NewReplaceAllExpectedRacksHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodPut, prefix+"/expected-rack", apiHandler.NewReplaceAllExpectedRacksHandler(p.dbSession, p.scp, p.cfg).Handle) // deprecated compat
+	group.Add(http.MethodDelete, prefix+"/expected-rack/all", apiHandler.NewDeleteAllExpectedRacksHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodGet, prefix+"/expected-rack/:id", apiHandler.NewGetExpectedRackHandler(p.dbSession, p.cfg).Handle)
+	group.Add(http.MethodPatch, prefix+"/expected-rack/:id", apiHandler.NewUpdateExpectedRackHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodDelete, prefix+"/expected-rack/:id", apiHandler.NewDeleteExpectedRackHandler(p.dbSession, p.scp, p.cfg).Handle)
+
+	// ExpectedRackGroup endpoints
+	group.Add(http.MethodPost, prefix+"/expected-rack-group", apiHandler.NewCreateExpectedRackGroupHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodGet, prefix+"/expected-rack-group", apiHandler.NewGetAllExpectedRackGroupHandler(p.dbSession, p.cfg).Handle)
+	group.Add(http.MethodPut, prefix+"/expected-rack-group/all", apiHandler.NewReplaceAllExpectedRackGroupsHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodPut, prefix+"/expected-rack-group", apiHandler.NewReplaceAllExpectedRackGroupsHandler(p.dbSession, p.scp, p.cfg).Handle) // deprecated compat
+	group.Add(http.MethodDelete, prefix+"/expected-rack-group/all", apiHandler.NewDeleteAllExpectedRackGroupsHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodGet, prefix+"/expected-rack-group/:id", apiHandler.NewGetExpectedRackGroupHandler(p.dbSession, p.cfg).Handle)
+	group.Add(http.MethodPatch, prefix+"/expected-rack-group/:id", apiHandler.NewUpdateExpectedRackGroupHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodDelete, prefix+"/expected-rack-group/:id", apiHandler.NewDeleteExpectedRackGroupHandler(p.dbSession, p.scp, p.cfg).Handle)
+
+	// ExpectedSwitch bulk operations
+	group.Add(http.MethodPut, prefix+"/expected-switch/all", apiHandler.NewReplaceAllExpectedSwitchesHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodDelete, prefix+"/expected-switch/all", apiHandler.NewDeleteAllExpectedSwitchesHandler(p.dbSession, p.scp, p.cfg).Handle)
 }

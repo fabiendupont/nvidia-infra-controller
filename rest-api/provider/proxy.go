@@ -21,6 +21,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog/log"
@@ -46,9 +47,23 @@ func (p *ExternalProvider) proxyHandler(c echo.Context) error {
 		})
 	}
 
+	// Strip the NICo path prefix (/<version>/org/:orgName/:apiName) before
+	// forwarding to the provider. The provider's internal Echo only knows
+	// about its own sub-paths (e.g. /api/v1/health/events), not the full
+	// NICo URL structure.
+	providerPath := req.URL.Path
+	if prefix := c.Get("providerPathPrefix"); prefix != nil {
+		if s, ok := prefix.(string); ok && s != "" {
+			providerPath = strings.TrimPrefix(providerPath, s)
+			if providerPath == "" {
+				providerPath = "/"
+			}
+		}
+	}
+
 	grpcReq := &providerv1.HTTPRequest{
 		Method:      req.Method,
-		Path:        req.URL.Path,
+		Path:        providerPath,
 		Headers:     extractHeaders(req),
 		QueryParams: extractQueryParams(req.URL.Query()),
 		PathParams:  extractPathParams(c),

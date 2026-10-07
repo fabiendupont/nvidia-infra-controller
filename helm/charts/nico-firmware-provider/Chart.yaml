@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+apiVersion: v2
+name: nico-firmware-provider
+description: Helm chart for the NICo firmware provider (fault management, remediation, service events)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - nico
+  - health
+  - provider
+  - grpc
