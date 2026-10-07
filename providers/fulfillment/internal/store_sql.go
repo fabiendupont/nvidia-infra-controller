@@ -1,203 +1,208 @@
-/*
- * SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
- * SPDX-License-Identifier: Apache-2.0
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
 
 package fulfillment
 
 import (
 	"context"
 	"fmt"
+	"time"
 
-	cdb "github.com/NVIDIA/infra-controller/rest-api/db/pkg/db"
-	"github.com/NVIDIA/infra-controller/rest-api/db/pkg/db/model"
 	"github.com/google/uuid"
+	"github.com/uptrace/bun"
 )
 
-// OrderStoreInterface defines the contract for order storage.
-type OrderStoreInterface interface {
-	Create(order *Order) error
-	Get(id uuid.UUID) (*Order, error)
-	Update(order *Order) error
-	Delete(id uuid.UUID) error
-	List() []*Order
-	ListByTenant(tenantID uuid.UUID) []*Order
+// --- Bun model structs (not exported; only used for DB I/O) ---
+
+type orderRow struct {
+	bun.BaseModel `bun:"table:orders"`
+
+	ID            uuid.UUID              `bun:"id,pk,type:uuid,default:gen_random_uuid()"`
+	BlueprintID   uuid.UUID              `bun:"blueprint_id,type:uuid,notnull"`
+	BlueprintName string                 `bun:"blueprint_name,notnull"`
+	TenantID      uuid.UUID              `bun:"tenant_id,type:uuid,notnull"`
+	Parameters    map[string]interface{} `bun:"parameters,type:jsonb"`
+	Status        string                 `bun:"status,notnull"`
+	StatusMessage string                 `bun:"status_message,notnull,default:''"`
+	WorkflowID    string                 `bun:"workflow_id,notnull,default:''"`
+	ServiceID     *uuid.UUID             `bun:"service_id,type:uuid"`
+	Created       time.Time              `bun:"created,notnull,default:now()"`
+	Updated       time.Time              `bun:"updated,notnull,default:now()"`
 }
 
-// ServiceStoreInterface defines the contract for service storage.
-type ServiceStoreInterface interface {
-	Create(svc *Service) error
-	Get(id uuid.UUID) (*Service, error)
-	Update(svc *Service) error
-	Delete(id uuid.UUID) error
-	List() []*Service
-	ListByTenant(tenantID uuid.UUID) []*Service
+type serviceRow struct {
+	bun.BaseModel `bun:"table:services"`
+
+	ID            uuid.UUID         `bun:"id,pk,type:uuid,default:gen_random_uuid()"`
+	OrderID       uuid.UUID         `bun:"order_id,type:uuid,notnull"`
+	BlueprintID   uuid.UUID         `bun:"blueprint_id,type:uuid,notnull"`
+	BlueprintName string            `bun:"blueprint_name,notnull"`
+	TenantID      uuid.UUID         `bun:"tenant_id,type:uuid,notnull"`
+	Name          string            `bun:"name,notnull"`
+	Status        string            `bun:"status,notnull"`
+	Resources     map[string]string `bun:"resources,type:jsonb"`
+	Created       time.Time         `bun:"created,notnull,default:now()"`
+	Updated       time.Time         `bun:"updated,notnull,default:now()"`
 }
+
+// --- OrderSQLStore ---
 
 // OrderSQLStore is a PostgreSQL-backed order store.
 type OrderSQLStore struct {
-	dao model.CatalogOrderDAO
+	db *bun.DB
 }
 
-// NewOrderSQLStore creates a new SQL-backed order store.
-func NewOrderSQLStore(dbSession *cdb.Session) *OrderSQLStore {
-	return &OrderSQLStore{dao: model.NewCatalogOrderDAO(dbSession)}
+// NewOrderSQLStore creates an order store backed by the given bun DB.
+// db must be scoped to the fulfillment schema via ConnectWithSchema.
+func NewOrderSQLStore(db *bun.DB) *OrderSQLStore {
+	return &OrderSQLStore{db: db}
 }
 
-// Create adds a new order to the database.
 func (s *OrderSQLStore) Create(order *Order) error {
-	dbModel := orderToDBModel(order)
-	created, err := s.dao.Create(context.Background(), nil, dbModel)
-	if err != nil {
-		return err
+	row := &orderRow{
+		BlueprintID:   order.BlueprintID,
+		BlueprintName: order.BlueprintName,
+		TenantID:      order.TenantID,
+		Parameters:    order.Parameters,
+		Status:        string(order.Status),
+		StatusMessage: order.StatusMessage,
+		WorkflowID:    order.WorkflowID,
+		ServiceID:     order.ServiceID,
 	}
-	order.ID = created.ID
-	order.Created = created.Created
-	order.Updated = created.Updated
+	if _, err := s.db.NewInsert().Model(row).Returning("*").Exec(context.Background()); err != nil {
+		return fmt.Errorf("create order: %w", err)
+	}
+	order.ID = row.ID
+	order.Created = row.Created
+	order.Updated = row.Updated
 	return nil
 }
 
-// Get retrieves an order by ID.
 func (s *OrderSQLStore) Get(id uuid.UUID) (*Order, error) {
-	dbModel, err := s.dao.GetByID(context.Background(), nil, id)
-	if err != nil {
+	row := new(orderRow)
+	if err := s.db.NewSelect().Model(row).Where("id = ?", id).Scan(context.Background()); err != nil {
 		return nil, fmt.Errorf("order %s not found", id)
 	}
-	return dbModelToOrder(dbModel), nil
+	return rowToOrder(row), nil
 }
 
-// Update replaces an existing order.
 func (s *OrderSQLStore) Update(order *Order) error {
-	dbModel := orderToDBModel(order)
-	updated, err := s.dao.Update(context.Background(), nil, dbModel)
-	if err != nil {
-		return err
+	row := orderToRow(order)
+	row.Updated = time.Now()
+	if _, err := s.db.NewUpdate().Model(row).WherePK().Returning("updated").Exec(context.Background()); err != nil {
+		return fmt.Errorf("update order %s: %w", order.ID, err)
 	}
-	order.Updated = updated.Updated
+	order.Updated = row.Updated
 	return nil
 }
 
-// Delete soft-deletes an order.
 func (s *OrderSQLStore) Delete(id uuid.UUID) error {
-	return s.dao.DeleteByID(context.Background(), nil, id)
+	if _, err := s.db.NewDelete().Model((*orderRow)(nil)).Where("id = ?", id).Exec(context.Background()); err != nil {
+		return fmt.Errorf("delete order %s: %w", id, err)
+	}
+	return nil
 }
 
-// List returns all orders.
 func (s *OrderSQLStore) List() []*Order {
-	dbModels, err := s.dao.GetAll(context.Background(), nil, nil, nil)
-	if err != nil {
+	var rows []orderRow
+	if err := s.db.NewSelect().Model(&rows).Scan(context.Background()); err != nil {
 		return nil
 	}
-	result := make([]*Order, 0, len(dbModels))
-	for i := range dbModels {
-		result = append(result, dbModelToOrder(&dbModels[i]))
+	result := make([]*Order, len(rows))
+	for i := range rows {
+		result[i] = rowToOrder(&rows[i])
 	}
 	return result
 }
 
-// ListByTenant returns all orders for a given tenant.
 func (s *OrderSQLStore) ListByTenant(tenantID uuid.UUID) []*Order {
-	dbModels, err := s.dao.GetAll(context.Background(), nil, &tenantID, nil)
-	if err != nil {
+	var rows []orderRow
+	if err := s.db.NewSelect().Model(&rows).Where("tenant_id = ?", tenantID).Scan(context.Background()); err != nil {
 		return nil
 	}
-	result := make([]*Order, 0, len(dbModels))
-	for i := range dbModels {
-		result = append(result, dbModelToOrder(&dbModels[i]))
+	result := make([]*Order, len(rows))
+	for i := range rows {
+		result[i] = rowToOrder(&rows[i])
 	}
 	return result
 }
+
+// --- ServiceSQLStore ---
 
 // ServiceSQLStore is a PostgreSQL-backed service store.
 type ServiceSQLStore struct {
-	dao model.CatalogServiceDAO
+	db *bun.DB
 }
 
-// NewServiceSQLStore creates a new SQL-backed service store.
-func NewServiceSQLStore(dbSession *cdb.Session) *ServiceSQLStore {
-	return &ServiceSQLStore{dao: model.NewCatalogServiceDAO(dbSession)}
+// NewServiceSQLStore creates a service store backed by the given bun DB.
+func NewServiceSQLStore(db *bun.DB) *ServiceSQLStore {
+	return &ServiceSQLStore{db: db}
 }
 
-// Create adds a new service to the database.
 func (s *ServiceSQLStore) Create(svc *Service) error {
-	dbModel := serviceToDBModel(svc)
-	created, err := s.dao.Create(context.Background(), nil, dbModel)
-	if err != nil {
-		return err
+	row := serviceToRow(svc)
+	if _, err := s.db.NewInsert().Model(row).Returning("*").Exec(context.Background()); err != nil {
+		return fmt.Errorf("create service: %w", err)
 	}
-	svc.ID = created.ID
-	svc.Created = created.Created
-	svc.Updated = created.Updated
+	svc.ID = row.ID
+	svc.Created = row.Created
+	svc.Updated = row.Updated
 	return nil
 }
 
-// Get retrieves a service by ID.
 func (s *ServiceSQLStore) Get(id uuid.UUID) (*Service, error) {
-	dbModel, err := s.dao.GetByID(context.Background(), nil, id)
-	if err != nil {
+	row := new(serviceRow)
+	if err := s.db.NewSelect().Model(row).Where("id = ?", id).Scan(context.Background()); err != nil {
 		return nil, fmt.Errorf("service %s not found", id)
 	}
-	return dbModelToService(dbModel), nil
+	return rowToService(row), nil
 }
 
-// Update replaces an existing service.
 func (s *ServiceSQLStore) Update(svc *Service) error {
-	dbModel := serviceToDBModel(svc)
-	updated, err := s.dao.Update(context.Background(), nil, dbModel)
-	if err != nil {
-		return err
+	row := serviceToRow(svc)
+	row.Updated = time.Now()
+	if _, err := s.db.NewUpdate().Model(row).WherePK().Returning("updated").Exec(context.Background()); err != nil {
+		return fmt.Errorf("update service %s: %w", svc.ID, err)
 	}
-	svc.Updated = updated.Updated
+	svc.Updated = row.Updated
 	return nil
 }
 
-// Delete soft-deletes a service.
 func (s *ServiceSQLStore) Delete(id uuid.UUID) error {
-	return s.dao.DeleteByID(context.Background(), nil, id)
+	if _, err := s.db.NewDelete().Model((*serviceRow)(nil)).Where("id = ?", id).Exec(context.Background()); err != nil {
+		return fmt.Errorf("delete service %s: %w", id, err)
+	}
+	return nil
 }
 
-// List returns all services.
 func (s *ServiceSQLStore) List() []*Service {
-	dbModels, err := s.dao.GetAll(context.Background(), nil, nil, nil)
-	if err != nil {
+	var rows []serviceRow
+	if err := s.db.NewSelect().Model(&rows).Scan(context.Background()); err != nil {
 		return nil
 	}
-	result := make([]*Service, 0, len(dbModels))
-	for i := range dbModels {
-		result = append(result, dbModelToService(&dbModels[i]))
+	result := make([]*Service, len(rows))
+	for i := range rows {
+		result[i] = rowToService(&rows[i])
 	}
 	return result
 }
 
-// ListByTenant returns all services for a given tenant.
 func (s *ServiceSQLStore) ListByTenant(tenantID uuid.UUID) []*Service {
-	dbModels, err := s.dao.GetAll(context.Background(), nil, &tenantID, nil)
-	if err != nil {
+	var rows []serviceRow
+	if err := s.db.NewSelect().Model(&rows).Where("tenant_id = ?", tenantID).Scan(context.Background()); err != nil {
 		return nil
 	}
-	result := make([]*Service, 0, len(dbModels))
-	for i := range dbModels {
-		result = append(result, dbModelToService(&dbModels[i]))
+	result := make([]*Service, len(rows))
+	for i := range rows {
+		result[i] = rowToService(&rows[i])
 	}
 	return result
 }
 
 // --- Conversion helpers ---
 
-func orderToDBModel(o *Order) *model.CatalogOrder {
-	return &model.CatalogOrder{
+func orderToRow(o *Order) *orderRow {
+	return &orderRow{
 		ID:            o.ID,
 		BlueprintID:   o.BlueprintID,
 		BlueprintName: o.BlueprintName,
@@ -212,24 +217,24 @@ func orderToDBModel(o *Order) *model.CatalogOrder {
 	}
 }
 
-func dbModelToOrder(m *model.CatalogOrder) *Order {
+func rowToOrder(row *orderRow) *Order {
 	return &Order{
-		ID:            m.ID,
-		BlueprintID:   m.BlueprintID,
-		BlueprintName: m.BlueprintName,
-		TenantID:      m.TenantID,
-		Parameters:    m.Parameters,
-		Status:        OrderStatus(m.Status),
-		StatusMessage: m.StatusMessage,
-		WorkflowID:    m.WorkflowID,
-		ServiceID:     m.ServiceID,
-		Created:       m.Created,
-		Updated:       m.Updated,
+		ID:            row.ID,
+		BlueprintID:   row.BlueprintID,
+		BlueprintName: row.BlueprintName,
+		TenantID:      row.TenantID,
+		Parameters:    row.Parameters,
+		Status:        OrderStatus(row.Status),
+		StatusMessage: row.StatusMessage,
+		WorkflowID:    row.WorkflowID,
+		ServiceID:     row.ServiceID,
+		Created:       row.Created,
+		Updated:       row.Updated,
 	}
 }
 
-func serviceToDBModel(s *Service) *model.CatalogService {
-	return &model.CatalogService{
+func serviceToRow(s *Service) *serviceRow {
+	return &serviceRow{
 		ID:            s.ID,
 		OrderID:       s.OrderID,
 		BlueprintID:   s.BlueprintID,
@@ -243,17 +248,17 @@ func serviceToDBModel(s *Service) *model.CatalogService {
 	}
 }
 
-func dbModelToService(m *model.CatalogService) *Service {
+func rowToService(row *serviceRow) *Service {
 	return &Service{
-		ID:            m.ID,
-		OrderID:       m.OrderID,
-		BlueprintID:   m.BlueprintID,
-		BlueprintName: m.BlueprintName,
-		TenantID:      m.TenantID,
-		Name:          m.Name,
-		Status:        ServiceStatus(m.Status),
-		Resources:     m.Resources,
-		Created:       m.Created,
-		Updated:       m.Updated,
+		ID:            row.ID,
+		OrderID:       row.OrderID,
+		BlueprintID:   row.BlueprintID,
+		BlueprintName: row.BlueprintName,
+		TenantID:      row.TenantID,
+		Name:          row.Name,
+		Status:        ServiceStatus(row.Status),
+		Resources:     row.Resources,
+		Created:       row.Created,
+		Updated:       row.Updated,
 	}
 }

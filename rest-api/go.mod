@@ -6,12 +6,12 @@ module github.com/NVIDIA/infra-controller/rest-api
 go 1.26.4
 
 require (
-	github.com/NVIDIA/infra-controller/provider-api v0.0.0-00010101000000-000000000000
 	connectrpc.com/connect v1.20.0
 	connectrpc.com/grpchealth v1.4.0
 	connectrpc.com/grpcreflect v1.3.0
 	connectrpc.com/otelconnect v0.9.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
+	github.com/NVIDIA/infra-controller/provider-api v0.0.0-00010101000000-000000000000
 	github.com/NVIDIA/infra-controller/rest-api/sdk/standard v0.0.0-00010101000000-000000000000
 	github.com/Nerzal/gocloak/v13 v13.9.0
 	github.com/avast/retry-go/v4 v4.7.0
@@ -473,6 +473,8 @@ require (
 )
 
 replace github.com/NVIDIA/infra-controller/provider-api => ../provider-api
+
+replace google.golang.org/genproto v0.0.0-20200423170343-7949de9c1215 => google.golang.org/genproto v0.0.0-20240903143218-8af14fe29dc1
 
 tool (
 	github.com/bufbuild/buf/cmd/buf

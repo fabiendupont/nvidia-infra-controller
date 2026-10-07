@@ -31,13 +31,13 @@ import (
 // stores they depend on. The stores are injected at construction time so that
 // the handler does not need to reach into the HealthProvider struct.
 type FaultHandler struct {
-	faultStore          *FaultEventStore
+	faultStore          FaultStoreI
 	classificationStore *ClassificationStore
 }
 
 // NewFaultHandler creates a FaultHandler with the given stores.
 func NewFaultHandler(
-	faultStore *FaultEventStore,
+	faultStore FaultStoreI,
 	classificationStore *ClassificationStore,
 ) *FaultHandler {
 	return &FaultHandler{

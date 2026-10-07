@@ -171,7 +171,7 @@ func (c *nicoProviderClient) GetOpenAPIFragment(ctx context.Context, in *GetOpen
 }
 
 // NicoProviderServer is the server API for NicoProvider service.
-// All implementations should embed UnimplementedNicoProviderServer
+// All implementations must embed UnimplementedNicoProviderServer
 // for forward compatibility.
 //
 // NicoProvider is the gRPC service that external provider sidecars implement.
@@ -194,9 +194,10 @@ type NicoProviderServer interface {
 	HandleSyncHook(context.Context, *HookEvent) (*HookResult, error)
 	// GetOpenAPIFragment returns the provider's OpenAPI spec fragment.
 	GetOpenAPIFragment(context.Context, *GetOpenAPIFragmentRequest) (*OpenAPIFragment, error)
+	mustEmbedUnimplementedNicoProviderServer()
 }
 
-// UnimplementedNicoProviderServer should be embedded to have
+// UnimplementedNicoProviderServer must be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
@@ -230,7 +231,8 @@ func (UnimplementedNicoProviderServer) HandleSyncHook(context.Context, *HookEven
 func (UnimplementedNicoProviderServer) GetOpenAPIFragment(context.Context, *GetOpenAPIFragmentRequest) (*OpenAPIFragment, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetOpenAPIFragment not implemented")
 }
-func (UnimplementedNicoProviderServer) testEmbeddedByValue() {}
+func (UnimplementedNicoProviderServer) mustEmbedUnimplementedNicoProviderServer() {}
+func (UnimplementedNicoProviderServer) testEmbeddedByValue()                      {}
 
 // UnsafeNicoProviderServer may be embedded to opt out of forward compatibility for this service.
 // Use of this interface is not recommended, as added methods to NicoProviderServer will

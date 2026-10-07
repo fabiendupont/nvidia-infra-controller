@@ -18,14 +18,12 @@
 package health
 
 import (
-	"context"
-	"fmt"
 
 	"github.com/NVIDIA/infra-controller/rest-api/provider"
 )
 
 // registerHooks registers hooks and reactions for the fault management system.
-func (p *HealthProvider) registerHooks(registry *provider.Registry) {
+func (p *Server) registerHooks(registry *provider.Registry) {
 	// After a fault is ingested, start remediation workflow
 	registry.RegisterReaction(provider.Reaction{
 		Feature:        "health",
@@ -64,32 +62,4 @@ func (p *HealthProvider) registerHooks(registry *provider.Registry) {
 		Event:   provider.EventPreCreateInstance,
 		Handler: p.blockInstanceOnFaultyMachine,
 	})
-}
-
-// blockInstanceOnFaultyMachine prevents instance creation on machines that
-// have open critical faults. It extracts the machine_id from the payload,
-// queries the fault store for open critical faults on that machine, and
-// returns an error if any are found.
-func (p *HealthProvider) blockInstanceOnFaultyMachine(ctx context.Context, payload interface{}) error {
-	// Extract machine_id from payload
-	data, ok := payload.(map[string]interface{})
-	if !ok {
-		return nil
-	}
-	machineID, ok := data["machine_id"].(string)
-	if !ok || machineID == "" {
-		return nil
-	}
-
-	// Query faultStore for open critical faults on that machine
-	faults, err := p.faultStore.ListOpenCriticalByMachine(ctx, machineID)
-	if err != nil {
-		return fmt.Errorf("failed to check faults for machine %s: %w", machineID, err)
-	}
-
-	if len(faults) > 0 {
-		return fmt.Errorf("machine %s has %d open critical fault(s); instance creation blocked", machineID, len(faults))
-	}
-
-	return nil
 }

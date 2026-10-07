@@ -31,6 +31,8 @@ import (
 	"github.com/rs/zerolog/log"
 
 	providerv1 "github.com/NVIDIA/infra-controller/provider-api/provider/v1"
+	sdkdb "github.com/NVIDIA/infra-controller/provider-sdk/db"
+	"github.com/NVIDIA/infra-controller/providers/health/internal/migrations"
 )
 
 // Server implements providerv1.NicoProviderServer by delegating HTTP handling
@@ -42,9 +44,9 @@ type Server struct {
 	apiPathPrefix string
 
 	// Stores
-	faultStore             *FaultStore
-	serviceEventStore      *ServiceEventStore
-	faultServiceEventStore *FaultServiceEventStore
+	faultStore             FaultStoreI
+	serviceEventStore      ServiceEventStoreI
+	faultServiceEventStore FaultServiceEventStoreI
 	classificationStore    *ClassificationStore
 
 	// Handlers
@@ -81,8 +83,8 @@ func (s *Server) GetInfo(_ context.Context, _ *providerv1.GetInfoRequest) (*prov
 	}, nil
 }
 
-// Init initializes the health provider. The stores are in-memory so no
-// database connection is needed; Temporal config is stored for future use.
+// Init initializes the health provider with PostgreSQL persistence when a
+// database is configured, falling back to in-memory stores otherwise.
 func (s *Server) Init(_ context.Context, req *providerv1.InitRequest) (*providerv1.InitResponse, error) {
 	log.Info().
 		Str("temporal_endpoint", req.GetTemporalEndpoint()).
@@ -91,11 +93,31 @@ func (s *Server) Init(_ context.Context, req *providerv1.InitRequest) (*provider
 
 	s.apiPathPrefix = "/api/v1"
 
-	// TODO: use sdk.ConnectWithSchema(ctx, dsn, "health") once provider-sdk ConnectWithSchema is available.
-	// Create stores — in-memory implementation for now; replace with SQL stores (Phase 3).
-	s.faultStore = NewFaultStore()
-	s.serviceEventStore = NewServiceEventStore()
-	s.faultServiceEventStore = NewFaultServiceEventStore()
+	// Connect to PostgreSQL in the health schema; fall back to in-memory.
+	dbCfg, err := sdkdb.ConfigFromEnv()
+	if err == nil {
+		session, dbErr := sdkdb.ConnectWithSchema(context.Background(), dbCfg, "health")
+		if dbErr != nil {
+			log.Warn().Err(dbErr).Msg("health DB connection failed; using in-memory stores")
+		} else {
+			migrator := sdkdb.NewMigrator(session.DB, "health", migrations.All())
+			if migrateErr := migrator.Run(context.Background()); migrateErr != nil {
+				log.Warn().Err(migrateErr).Msg("health migration failed; using in-memory stores")
+			} else {
+				s.faultStore = NewFaultEventSQLStore(session.DB)
+				s.serviceEventStore = NewServiceEventSQLStore(session.DB)
+				s.faultServiceEventStore = NewFaultServiceEventStore()
+				log.Info().Msg("health using PostgreSQL stores (schema: health)")
+			}
+		}
+	}
+	if s.faultStore == nil {
+		log.Info().Msg("health using in-memory stores")
+		s.faultStore = NewFaultStore()
+		s.serviceEventStore = NewServiceEventStore()
+		s.faultServiceEventStore = NewFaultServiceEventStore()
+	}
+
 	s.classificationStore = NewClassificationStore(loadDefaultClassifications())
 
 	// Create handlers

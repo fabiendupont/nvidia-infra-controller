@@ -31,6 +31,8 @@ import (
 	tsdkWorker "go.temporal.io/sdk/worker"
 
 	providerv1 "github.com/NVIDIA/infra-controller/provider-api/provider/v1"
+	sdkdb "github.com/NVIDIA/infra-controller/provider-sdk/db"
+	"github.com/NVIDIA/infra-controller/providers/fulfillment/internal/migrations"
 )
 
 // Server implements the NicoProviderServer gRPC interface for the
@@ -75,9 +77,32 @@ func (s *Server) Init(_ context.Context, req *providerv1.InitRequest) (*provider
 		Int("service_endpoints", len(req.GetServiceEndpoints())).
 		Msg("initializing fulfillment provider")
 
-	// Initialize in-memory stores.
-	s.orderStore = NewOrderStore()
-	s.serviceStore = NewServiceStore()
+	// Connect to PostgreSQL in the fulfillment schema, falling back to
+	// in-memory stores if no database is configured.
+	dbCfg, err := sdkdb.ConfigFromEnv()
+	if err == nil {
+		session, dbErr := sdkdb.ConnectWithSchema(context.Background(), dbCfg, "fulfillment")
+		if dbErr != nil {
+			log.Warn().Err(dbErr).Msg("fulfillment DB connection failed; using in-memory stores")
+			s.orderStore = NewOrderStore()
+			s.serviceStore = NewServiceStore()
+		} else {
+			migrator := sdkdb.NewMigrator(session.DB, "fulfillment", migrations.All())
+			if migrateErr := migrator.Run(context.Background()); migrateErr != nil {
+				log.Warn().Err(migrateErr).Msg("fulfillment migration failed; using in-memory stores")
+				s.orderStore = NewOrderStore()
+				s.serviceStore = NewServiceStore()
+			} else {
+				s.orderStore = NewOrderSQLStore(session.DB)
+				s.serviceStore = NewServiceSQLStore(session.DB)
+				log.Info().Msg("fulfillment using PostgreSQL store (schema: fulfillment)")
+			}
+		}
+	} else {
+		log.Info().Msg("fulfillment DB not configured; using in-memory stores")
+		s.orderStore = NewOrderStore()
+		s.serviceStore = NewServiceStore()
+	}
 
 	// Register routes on the internal Echo instance.
 	prefix := "/api/v1"
