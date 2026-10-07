@@ -1,19 +1,5 @@
-/*
- * SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
- * SPDX-License-Identifier: Apache-2.0
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
 
 package showback
 
@@ -21,94 +7,51 @@ import (
 	"context"
 	"time"
 
-	cdb "github.com/NVIDIA/infra-controller/rest-api/db/pkg/db"
-	"github.com/NVIDIA/infra-controller/rest-api/db/pkg/db/model"
 	"github.com/google/uuid"
+
+	sdk "github.com/NVIDIA/infra-controller/provider-sdk/db"
 )
 
-// UsageStoreInterface defines the contract for usage record storage.
-type UsageStoreInterface interface {
-	StartMetering(tenantID, resourceID uuid.UUID, metricName string)
-	StopMetering(resourceID uuid.UUID) error
-	GetUsageByTenant(tenantID uuid.UUID) UsageSummary
-	GetUsageByService(serviceID uuid.UUID) UsageSummary
-}
-
-// UsageSQLStore is a PostgreSQL-backed usage store.
+// UsageSQLStore is a PostgreSQL-backed usage store using the showback schema.
 type UsageSQLStore struct {
-	dbSession *cdb.Session
-	dao       model.UsageRecordDAO
+	dao *usageRecordDAO
 }
 
-// NewUsageSQLStore creates a new SQL-backed usage store.
-func NewUsageSQLStore(dbSession *cdb.Session) *UsageSQLStore {
-	return &UsageSQLStore{dbSession: dbSession, dao: model.NewUsageRecordDAO(dbSession)}
+// NewUsageSQLStore creates a new SQL-backed usage store using a provider-sdk
+// Session already scoped to the showback schema.
+func NewUsageSQLStore(s *sdk.Session) *UsageSQLStore {
+	return &UsageSQLStore{dao: newUsageRecordDAO(s)}
 }
 
-// StartMetering creates an open-ended usage record for the given resource.
 func (s *UsageSQLStore) StartMetering(tenantID, resourceID uuid.UUID, metricName string) {
-	record := &model.UsageRecord{
+	record := &dbUsageRecord{
 		ID:         uuid.New(),
 		TenantID:   tenantID,
 		ResourceID: resourceID,
 		MetricName: metricName,
-		StartTime:  time.Now(),
+		StartTime:  time.Now().UTC(),
 	}
-	// Best-effort: errors are logged by the DAO tracing
-	s.dao.Create(context.Background(), nil, record) //nolint:errcheck // fire-and-forget metering start
+	s.dao.create(context.Background(), record) //nolint:errcheck // fire-and-forget
 }
 
-// StopMetering closes the active usage record for the given resource.
-// Uses a transaction to prevent read-then-update races.
 func (s *UsageSQLStore) StopMetering(resourceID uuid.UUID) error {
 	ctx := context.Background()
-
-	tx, err := cdb.BeginTx(ctx, s.dbSession, nil)
+	record, err := s.dao.getByResourceID(ctx, resourceID)
 	if err != nil {
-		// Fall back to non-transactional if BeginTx fails (e.g., no DB)
-		return s.stopMeteringNoTx(ctx, resourceID)
-	}
-
-	record, err := s.dao.GetByResourceID(ctx, tx, resourceID)
-	if err != nil {
-		tx.Rollback()
 		return err
 	}
-
-	now := time.Now()
+	now := time.Now().UTC()
 	record.EndTime = &now
 	record.Value = now.Sub(record.StartTime).Hours()
-
-	_, err = s.dao.Update(ctx, tx, record)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	return tx.Commit()
-}
-
-func (s *UsageSQLStore) stopMeteringNoTx(ctx context.Context, resourceID uuid.UUID) error {
-	record, err := s.dao.GetByResourceID(ctx, nil, resourceID)
-	if err != nil {
-		return err
-	}
-
-	now := time.Now()
-	record.EndTime = &now
-	record.Value = now.Sub(record.StartTime).Hours()
-
-	_, err = s.dao.Update(ctx, nil, record)
+	_, err = s.dao.update(ctx, record)
 	return err
 }
 
-// GetUsageByTenant returns a usage summary for the given tenant.
 func (s *UsageSQLStore) GetUsageByTenant(tenantID uuid.UUID) UsageSummary {
-	records, err := s.dao.GetAllByTenant(context.Background(), nil, tenantID)
+	records, err := s.dao.getAllByTenant(context.Background(), tenantID)
 	if err != nil {
 		return UsageSummary{TenantID: tenantID, Period: "current-month", Metrics: map[string]float64{}}
 	}
-
 	metrics := make(map[string]float64)
 	for _, r := range records {
 		val := r.Value
@@ -117,21 +60,14 @@ func (s *UsageSQLStore) GetUsageByTenant(tenantID uuid.UUID) UsageSummary {
 		}
 		metrics[r.MetricName] += val
 	}
-
-	return UsageSummary{
-		TenantID: tenantID,
-		Period:   "current-month",
-		Metrics:  metrics,
-	}
+	return UsageSummary{TenantID: tenantID, Period: "current-month", Metrics: metrics}
 }
 
-// GetUsageByService returns a usage summary for a specific service.
 func (s *UsageSQLStore) GetUsageByService(serviceID uuid.UUID) UsageSummary {
-	records, err := s.dao.GetAllByService(context.Background(), nil, serviceID)
+	records, err := s.dao.getAllByService(context.Background(), serviceID)
 	if err != nil {
 		return UsageSummary{Period: "current-month", Metrics: map[string]float64{}}
 	}
-
 	metrics := make(map[string]float64)
 	var tenantID uuid.UUID
 	for _, r := range records {
@@ -142,10 +78,5 @@ func (s *UsageSQLStore) GetUsageByService(serviceID uuid.UUID) UsageSummary {
 		}
 		metrics[r.MetricName] += val
 	}
-
-	return UsageSummary{
-		TenantID: tenantID,
-		Period:   "current-month",
-		Metrics:  metrics,
-	}
+	return UsageSummary{TenantID: tenantID, Period: "current-month", Metrics: metrics}
 }

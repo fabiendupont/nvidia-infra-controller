@@ -959,7 +959,7 @@ const file_provider_v1_services_proto_rawDesc = "" +
 	"GetSubnets\x12#.nico.provider.v1.GetSubnetsRequest\x1a$.nico.provider.v1.SubnetListResponse2\xd3\x01\n" +
 	"\x12NicoComputeService\x12_\n" +
 	"\x0fGetInstanceByID\x12(.nico.provider.v1.GetInstanceByIDRequest\x1a\".nico.provider.v1.InstanceResponse\x12\\\n" +
-	"\x0eGetMachineByID\x12'.nico.provider.v1.GetMachineByIDRequest\x1a!.nico.provider.v1.MachineResponseBLZJgithub.com/NVIDIA/infra-controller/provider-api/provider/v1;providerv1b\x06proto3"
+	"\x0eGetMachineByID\x12'.nico.provider.v1.GetMachineByIDRequest\x1a!.nico.provider.v1.MachineResponseBHZFgithub.com/NVIDIA/infra-controller/provider-api/provider/v1;providerv1b\x06proto3"
 
 var (
 	file_provider_v1_services_proto_rawDescOnce sync.Once

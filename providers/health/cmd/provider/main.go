@@ -24,14 +24,14 @@ import (
 	"github.com/rs/zerolog/log"
 
 	sdk "github.com/NVIDIA/infra-controller/provider-sdk"
-	"github.com/NVIDIA/infra-controller/providers/health/internal"
+	health "github.com/NVIDIA/infra-controller/providers/health/internal"
 )
 
 func main() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
-	server := internal.NewServer()
+	server := health.NewServer()
 
 	srv, err := sdk.NewServer(sdk.ServerConfig{}, server)
 	if err != nil {

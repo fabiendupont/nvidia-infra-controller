@@ -81,7 +81,7 @@ func (c *nicoNetworkingServiceClient) GetSubnets(ctx context.Context, in *GetSub
 }
 
 // NicoNetworkingServiceServer is the server API for NicoNetworkingService service.
-// All implementations should embed UnimplementedNicoNetworkingServiceServer
+// All implementations must embed UnimplementedNicoNetworkingServiceServer
 // for forward compatibility.
 //
 // NicoNetworkingService exposes networking resource queries for cross-domain
@@ -91,9 +91,10 @@ type NicoNetworkingServiceServer interface {
 	GetVpcByID(context.Context, *GetVpcByIDRequest) (*VpcResponse, error)
 	// GetSubnets returns subnets matching the given VPC ID.
 	GetSubnets(context.Context, *GetSubnetsRequest) (*SubnetListResponse, error)
+	mustEmbedUnimplementedNicoNetworkingServiceServer()
 }
 
-// UnimplementedNicoNetworkingServiceServer should be embedded to have
+// UnimplementedNicoNetworkingServiceServer must be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
@@ -106,7 +107,8 @@ func (UnimplementedNicoNetworkingServiceServer) GetVpcByID(context.Context, *Get
 func (UnimplementedNicoNetworkingServiceServer) GetSubnets(context.Context, *GetSubnetsRequest) (*SubnetListResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetSubnets not implemented")
 }
-func (UnimplementedNicoNetworkingServiceServer) testEmbeddedByValue() {}
+func (UnimplementedNicoNetworkingServiceServer) mustEmbedUnimplementedNicoNetworkingServiceServer() {}
+func (UnimplementedNicoNetworkingServiceServer) testEmbeddedByValue()                               {}
 
 // UnsafeNicoNetworkingServiceServer may be embedded to opt out of forward compatibility for this service.
 // Use of this interface is not recommended, as added methods to NicoNetworkingServiceServer will
@@ -229,7 +231,7 @@ func (c *nicoComputeServiceClient) GetMachineByID(ctx context.Context, in *GetMa
 }
 
 // NicoComputeServiceServer is the server API for NicoComputeService service.
-// All implementations should embed UnimplementedNicoComputeServiceServer
+// All implementations must embed UnimplementedNicoComputeServiceServer
 // for forward compatibility.
 //
 // NicoComputeService exposes compute resource queries for cross-domain
@@ -239,9 +241,10 @@ type NicoComputeServiceServer interface {
 	GetInstanceByID(context.Context, *GetInstanceByIDRequest) (*InstanceResponse, error)
 	// GetMachineByID returns a single machine by its string ID.
 	GetMachineByID(context.Context, *GetMachineByIDRequest) (*MachineResponse, error)
+	mustEmbedUnimplementedNicoComputeServiceServer()
 }
 
-// UnimplementedNicoComputeServiceServer should be embedded to have
+// UnimplementedNicoComputeServiceServer must be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
@@ -254,7 +257,8 @@ func (UnimplementedNicoComputeServiceServer) GetInstanceByID(context.Context, *G
 func (UnimplementedNicoComputeServiceServer) GetMachineByID(context.Context, *GetMachineByIDRequest) (*MachineResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetMachineByID not implemented")
 }
-func (UnimplementedNicoComputeServiceServer) testEmbeddedByValue() {}
+func (UnimplementedNicoComputeServiceServer) mustEmbedUnimplementedNicoComputeServiceServer() {}
+func (UnimplementedNicoComputeServiceServer) testEmbeddedByValue()                            {}
 
 // UnsafeNicoComputeServiceServer may be embedded to opt out of forward compatibility for this service.
 // Use of this interface is not recommended, as added methods to NicoComputeServiceServer will

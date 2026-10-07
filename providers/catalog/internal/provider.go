@@ -23,12 +23,15 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"strconv"
 	"strings"
 
 	echo "github.com/labstack/echo/v4"
 	"github.com/rs/zerolog/log"
 
 	providerv1 "github.com/NVIDIA/infra-controller/provider-api/provider/v1"
+	sdk "github.com/NVIDIA/infra-controller/provider-sdk/db"
 )
 
 // Server implements the NicoProviderServer gRPC interface for the catalog provider.
@@ -55,17 +58,33 @@ func (s *Server) GetInfo(_ context.Context, _ *providerv1.GetInfoRequest) (*prov
 	}, nil
 }
 
-// Init initializes the catalog provider. The stores are in-memory so no
-// database connection is needed.
-func (s *Server) Init(_ context.Context, req *providerv1.InitRequest) (*providerv1.InitResponse, error) {
+// Init initializes the catalog provider, connecting to PostgreSQL in the
+// "catalog" schema and running migrations before serving requests.
+func (s *Server) Init(ctx context.Context, req *providerv1.InitRequest) (*providerv1.InitResponse, error) {
 	log.Info().
 		Str("temporal_endpoint", req.GetTemporalEndpoint()).
 		Str("temporal_namespace", req.GetTemporalNamespace()).
 		Msg("initializing catalog provider")
 
-	// TODO: use sdk.ConnectWithSchema(ctx, dsn, "catalog") once provider-sdk ConnectWithSchema is available.
-	// Using SQL store when DB available, else in-memory (Phase 3 will enforce schema isolation).
-	s.store = NewBlueprintStore() // replace with NewBlueprintSQLStore(db) once DB wiring is complete
+	port, _ := strconv.Atoi(envOrDefault("DB_PORT", "5432"))
+	dbCfg := sdk.Config{
+		Host:       envOrDefault("DB_HOST", "localhost"),
+		Port:       port,
+		DBName:     envOrDefault("DB_NAME", "nico"),
+		Credential: sdk.NewCredential(envOrDefault("DB_USER", "nico"), envOrDefault("DB_PASSWORD", "")),
+	}
+
+	db, err := sdk.ConnectWithSchema(ctx, dbCfg, "catalog")
+	if err != nil {
+		return initFailed("database connection failed: %v", err), nil
+	}
+
+	migrator := sdk.NewMigrator(db.DB, "catalog", catalogMigrations)
+	if err := migrator.Run(ctx); err != nil {
+		return initFailed("migrations failed: %v", err), nil
+	}
+
+	s.store = NewBlueprintSQLStore(db)
 	s.handler = NewBlueprintHandler(s.store)
 
 	// Set up an internal Echo instance for HTTP dispatch.
@@ -215,4 +234,17 @@ func (s *Server) HandleSyncHook(_ context.Context, event *providerv1.HookEvent) 
 // GetOpenAPIFragment returns an empty OpenAPI fragment.
 func (s *Server) GetOpenAPIFragment(_ context.Context, _ *providerv1.GetOpenAPIFragmentRequest) (*providerv1.OpenAPIFragment, error) {
 	return &providerv1.OpenAPIFragment{}, nil
+}
+
+func envOrDefault(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
+
+func initFailed(format string, args ...interface{}) *providerv1.InitResponse {
+	msg := fmt.Sprintf(format, args...)
+	log.Error().Msg(msg)
+	return &providerv1.InitResponse{Ready: false, Message: msg}
 }

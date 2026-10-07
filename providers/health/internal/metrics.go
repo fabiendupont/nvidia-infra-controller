@@ -35,11 +35,11 @@ type FaultMetrics struct {
 	// Histograms — latency distributions
 	mttr *prometheus.HistogramVec
 
-	faultStore *FaultStore
+	faultStore FaultStoreI
 }
 
 // NewFaultMetrics creates and registers Prometheus metrics for fault events.
-func NewFaultMetrics(reg prometheus.Registerer, faultStore *FaultStore) *FaultMetrics {
+func NewFaultMetrics(reg prometheus.Registerer, faultStore FaultStoreI) *FaultMetrics {
 	m := &FaultMetrics{
 		faultStore: faultStore,
 

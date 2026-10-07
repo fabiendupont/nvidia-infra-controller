@@ -26,8 +26,8 @@ import (
 
 	cdbm "github.com/NVIDIA/infra-controller/rest-api/db/pkg/db/model"
 	"github.com/NVIDIA/infra-controller/rest-api/db/pkg/db/paginator"
-	"github.com/NVIDIA/infra-controller/rest-api/providers/compute/computesvc"
-	"github.com/NVIDIA/infra-controller/rest-api/providers/networking/networkingsvc"
+	"github.com/NVIDIA/infra-controller/rest-api/api/pkg/providers/compute/computesvc"
+	"github.com/NVIDIA/infra-controller/rest-api/api/pkg/providers/networking/networkingsvc"
 )
 
 // ProvisioningActivities handles infrastructure provisioning steps

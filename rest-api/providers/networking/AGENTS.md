@@ -1,3 +1,0 @@
-# providers/networking
-
-The networking provider implements the `networking` feature of NICo's extensible architecture. It wraps all existing VPC, Subnet, IPBlock, NetworkSecurityGroup, InfiniBandPartition, NVLinkLogicalPartition, and DPU Extension Service API handlers and Temporal workflows, registering them under the provider framework. It also exposes the `networkingsvc.Service` cross-domain interface so other providers can read VPC and subnet state without direct database access. The provider runs either compiled-in (via `provider.ProviderContext`) or as an external gRPC process (via `cmd/networking-provider/`).

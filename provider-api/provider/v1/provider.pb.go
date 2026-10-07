@@ -1295,7 +1295,7 @@ const file_provider_v1_provider_proto_rawDesc = "" +
 	"\rHandleRequest\x12\x1d.nico.provider.v1.HTTPRequest\x1a\x1e.nico.provider.v1.HTTPResponse\x12m\n" +
 	"\x14GetHookRegistrations\x12-.nico.provider.v1.GetHookRegistrationsRequest\x1a&.nico.provider.v1.HookRegistrationList\x12K\n" +
 	"\x0eHandleSyncHook\x12\x1b.nico.provider.v1.HookEvent\x1a\x1c.nico.provider.v1.HookResult\x12d\n" +
-	"\x12GetOpenAPIFragment\x12+.nico.provider.v1.GetOpenAPIFragmentRequest\x1a!.nico.provider.v1.OpenAPIFragmentBLZJgithub.com/NVIDIA/infra-controller/provider-api/provider/v1;providerv1b\x06proto3"
+	"\x12GetOpenAPIFragment\x12+.nico.provider.v1.GetOpenAPIFragmentRequest\x1a!.nico.provider.v1.OpenAPIFragmentBHZFgithub.com/NVIDIA/infra-controller/provider-api/provider/v1;providerv1b\x06proto3"
 
 var (
 	file_provider_v1_provider_proto_rawDescOnce sync.Once

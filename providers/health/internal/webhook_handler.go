@@ -28,13 +28,13 @@ import (
 // WebhookHandler groups webhook ingestion HTTP handlers for external alert
 // sources such as AlertManager.
 type WebhookHandler struct {
-	faultStore          *FaultEventStore
+	faultStore          FaultStoreI
 	classificationStore *ClassificationStore
 }
 
 // NewWebhookHandler creates a WebhookHandler with the given stores.
 func NewWebhookHandler(
-	faultStore *FaultEventStore,
+	faultStore FaultStoreI,
 	classificationStore *ClassificationStore,
 ) *WebhookHandler {
 	return &WebhookHandler{

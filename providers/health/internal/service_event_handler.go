@@ -30,14 +30,14 @@ import (
 // and the stores they depend on. Responses deliberately omit machine IDs,
 // rack locations, classifications, and remediation details.
 type ServiceEventHandler struct {
-	serviceEventStore *ServiceEventStore
-	faultServiceStore *FaultServiceEventStore
+	serviceEventStore ServiceEventStoreI
+	faultServiceStore FaultServiceEventStoreI
 }
 
 // NewServiceEventHandler creates a ServiceEventHandler with the given stores.
 func NewServiceEventHandler(
-	serviceEventStore *ServiceEventStore,
-	faultServiceStore *FaultServiceEventStore,
+	serviceEventStore ServiceEventStoreI,
+	faultServiceStore FaultServiceEventStoreI,
 ) *ServiceEventHandler {
 	return &ServiceEventHandler{
 		serviceEventStore: serviceEventStore,
