@@ -248,6 +248,10 @@ spec:
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
+            {{- if .Values.provider.discovery.enabled }}
+            - name: NICO_K8S_DISCOVERY_NAMESPACE
+              value: {{ .Values.provider.discovery.namespace | default .Release.Namespace | quote }}
+            {{- end }}
           ports:
             - name: grpc
               containerPort: {{ .Values.service.grpc.port }}

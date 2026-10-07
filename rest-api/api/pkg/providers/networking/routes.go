@@ -103,4 +103,23 @@ func (p *NetworkingProvider) RegisterRoutes(group *echo.Group) {
 	group.Add(http.MethodDelete, prefix+"/dpu-extension-service/:id", apiHandler.NewDeleteDpuExtensionServiceHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
 	group.Add(http.MethodGet, prefix+"/dpu-extension-service/:id/version/:version", apiHandler.NewGetDpuExtensionServiceVersionHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
 	group.Add(http.MethodDelete, prefix+"/dpu-extension-service/:id/version/:version", apiHandler.NewDeleteDpuExtensionServiceVersionHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
+
+	// VPC routing-profile sub-routes
+	group.Add(http.MethodGet, prefix+"/vpc/:id/routing-profile", apiHandler.NewGetVPCRoutingProfileHandler(p.dbSession, p.scp).Handle)
+	group.Add(http.MethodPatch, prefix+"/vpc/:id/routing-profile", apiHandler.NewUpdateVPCRoutingProfileHandler(p.dbSession, p.scp).Handle)
+	group.Add(http.MethodPost, prefix+"/vpc/:id/routing-profile/release-inactive-vni", apiHandler.NewReleaseVPCInactiveVniHandler(p.dbSession, p.scp).Handle)
+
+	// VPC Peering endpoints
+	group.Add(http.MethodPost, prefix+"/vpc-peering", apiHandler.NewCreateVpcPeeringHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
+	group.Add(http.MethodGet, prefix+"/vpc-peering", apiHandler.NewGetAllVpcPeeringHandler(p.dbSession, p.tc, p.cfg).Handle)
+	group.Add(http.MethodGet, prefix+"/vpc-peering/:id", apiHandler.NewGetVpcPeeringHandler(p.dbSession, p.tc, p.cfg).Handle)
+	group.Add(http.MethodDelete, prefix+"/vpc-peering/:id", apiHandler.NewDeleteVpcPeeringHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
+
+	// NVLink Domain endpoints
+	group.Add(http.MethodGet, prefix+"/domain/nvlink", apiHandler.NewGetAllNVLinkDomainHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
+	group.Add(http.MethodPatch, prefix+"/domain/nvlink/power", apiHandler.NewBatchUpdateNVLinkDomainPowerStateHandler(p.dbSession, p.scp).Handle)
+	group.Add(http.MethodPatch, prefix+"/domain/nvlink/firmware", apiHandler.NewBatchUpdateNVLinkDomainFirmwareHandler(p.dbSession, p.scp).Handle)
+	group.Add(http.MethodPatch, prefix+"/domain/nvlink/:id/power", apiHandler.NewUpdateNVLinkDomainPowerStateHandler(p.dbSession, p.scp).Handle)
+	group.Add(http.MethodPatch, prefix+"/domain/nvlink/:id/firmware", apiHandler.NewUpdateNVLinkDomainFirmwareHandler(p.dbSession, p.scp).Handle)
+	group.Add(http.MethodGet, prefix+"/domain/nvlink/:id", apiHandler.NewGetNVLinkDomainHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
 }

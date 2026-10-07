@@ -186,6 +186,15 @@ func (kd *KubernetesDiscovery) connectProvider(cm *corev1.ConfigMap) {
 		return
 	}
 
+	// Register the provider's HTTP routes on the org-scoped Echo group so
+	// requests are proxied to the provider. This must happen after Init so
+	// the provider's route list is populated.
+	if g := kd.registry.ProviderGroup(); g != nil {
+		ep.RegisterRoutes(g)
+	} else {
+		log.Warn().Str("provider", ep.Name()).Msg("no route group available; provider routes not registered")
+	}
+
 	kd.mu.Lock()
 	kd.providers[cm.Name] = ep
 	kd.mu.Unlock()

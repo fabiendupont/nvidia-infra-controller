@@ -22,17 +22,34 @@ import (
 	"fmt"
 	"sync"
 
+	echo "github.com/labstack/echo/v4"
 	"github.com/rs/zerolog/log"
 )
 
 // Registry manages provider lifecycle: registration, dependency resolution,
 // initialization, and shutdown.
 type Registry struct {
-	mu        sync.RWMutex
-	providers map[string]Provider
-	features  map[string]string // feature name → provider name
-	order     []string          // init order after dependency resolution
-	hooks     *hookRegistry
+	mu           sync.RWMutex
+	providers    map[string]Provider
+	features     map[string]string // feature name → provider name
+	order        []string          // init order after dependency resolution
+	hooks        *hookRegistry
+	providerGroup *echo.Group     // org-scoped route group; set by InitAPIServer
+}
+
+// SetProviderGroup stores the org-scoped Echo group used to mount provider
+// routes. Called once by InitAPIServer before starting KubernetesDiscovery.
+func (r *Registry) SetProviderGroup(g *echo.Group) {
+	r.mu.Lock()
+	r.providerGroup = g
+	r.mu.Unlock()
+}
+
+// ProviderGroup returns the org-scoped Echo route group, or nil if not set.
+func (r *Registry) ProviderGroup() *echo.Group {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.providerGroup
 }
 
 // NewRegistry creates a new provider registry.

@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nico-compute-provider.name" . }}
+  namespace: {{ include "nico-compute-provider.namespace" . }}
+  labels:
+    {{- include "nico-compute-provider.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.port }}
+      name: grpc
+      protocol: TCP
+  selector:
+    {{- include "nico-compute-provider.selectorLabels" . | nindent 4 }}

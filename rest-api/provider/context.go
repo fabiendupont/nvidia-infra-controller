@@ -20,6 +20,8 @@ package provider
 import (
 	tsdkClient "go.temporal.io/sdk/client"
 
+	echo "github.com/labstack/echo/v4"
+
 	dpsclient "github.com/NVIDIA/infra-controller/rest-api/api/pkg/client/dps"
 	sc "github.com/NVIDIA/infra-controller/rest-api/api/pkg/client/site"
 	cdb "github.com/NVIDIA/infra-controller/rest-api/db/pkg/db"
@@ -67,4 +69,9 @@ type ProviderContext struct {
 	// DPS is the hardware power provisioner, used by instance handlers
 	// that delegate power operations to the DPS service.
 	DPS dpsclient.PowerProvisioner
+
+	// RouteGroup is the org-scoped Echo group where provider routes are
+	// registered. Populated by InitAPIServer; used by KubernetesDiscovery
+	// to register dynamically discovered providers' routes at runtime.
+	RouteGroup *echo.Group
 }

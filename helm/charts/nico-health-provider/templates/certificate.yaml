@@ -1,0 +1,33 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+{{- if .Values.certificate.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.certificate.name }}
+  namespace: {{ include "nico-health-provider.namespace" . }}
+  labels:
+    {{- include "nico-health-provider.labels" . | nindent 4 }}
+spec:
+  secretName: {{ .Values.certificate.secretName }}
+  duration: {{ .Values.certificate.duration }}
+  renewBefore: {{ .Values.certificate.renewBefore }}
+  {{- with .Values.certificate.subject }}
+  subject:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  privateKey:
+    algorithm: {{ .Values.certificate.privateKey.algorithm }}
+    size: {{ .Values.certificate.privateKey.size }}
+  issuerRef:
+    kind: {{ .Values.global.certificate.issuerRef.kind }}
+    name: {{ .Values.global.certificate.issuerRef.name }}
+    group: {{ .Values.global.certificate.issuerRef.group }}
+  dnsNames:
+    - {{ .Values.service.name }}.{{ include "nico-health-provider.namespace" . }}.svc.cluster.local
+    - {{ .Values.service.name }}.{{ include "nico-health-provider.namespace" . }}
+  {{- with .Values.certificate.uris }}
+  uris:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

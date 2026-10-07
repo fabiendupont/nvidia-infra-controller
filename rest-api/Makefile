@@ -47,6 +47,9 @@ HELM_SET := --set global.image.repository=$(IMAGE_REGISTRY) \
 	--set global.image.tag=$(IMAGE_TAG) \
 	--set global.image.pullPolicy=Never
 
+HELM_SET_PROVIDER_DISCOVERY := --set nico-rest-api.provider.discovery.enabled=true \
+	--set nico-rest-api.provider.discovery.namespace=nico-rest
+
 HELM_SET_KEYCLOAK := --set nico-rest-api.config.keycloak.enabled=true \
 	--set nico-rest-api.config.keycloak.baseURL=http://keycloak:8082 \
 	--set nico-rest-api.config.keycloak.externalBaseURL=http://localhost:8082 \
@@ -411,16 +414,16 @@ LOCAL_CORE_CERTS_DIR ?= ../dev/certs/localhost
 
 # Build images using local Dockerfiles (public base images for local dev)
 docker-build-local:
-	docker build -t $(IMAGE_REGISTRY)/nico-rest-api:$(IMAGE_TAG) -f $(LOCAL_DOCKERFILE_DIR)/Dockerfile.nico-rest-api .
-	docker build -t $(IMAGE_REGISTRY)/nico-rest-workflow:$(IMAGE_TAG) -f $(LOCAL_DOCKERFILE_DIR)/Dockerfile.nico-rest-workflow .
-	docker build -t $(IMAGE_REGISTRY)/nico-rest-site-manager:$(IMAGE_TAG) -f $(LOCAL_DOCKERFILE_DIR)/Dockerfile.nico-rest-site-manager .
-	docker build -t $(IMAGE_REGISTRY)/nico-rest-site-agent:$(IMAGE_TAG) -f $(LOCAL_DOCKERFILE_DIR)/Dockerfile.nico-rest-site-agent .
+	docker build -t $(IMAGE_REGISTRY)/nico-rest-api:$(IMAGE_TAG) -f $(LOCAL_DOCKERFILE_DIR)/Dockerfile.nico-rest-api ..
+	docker build -t $(IMAGE_REGISTRY)/nico-rest-workflow:$(IMAGE_TAG) -f $(LOCAL_DOCKERFILE_DIR)/Dockerfile.nico-rest-workflow ..
+	docker build -t $(IMAGE_REGISTRY)/nico-rest-site-manager:$(IMAGE_TAG) -f $(LOCAL_DOCKERFILE_DIR)/Dockerfile.nico-rest-site-manager ..
+	docker build -t $(IMAGE_REGISTRY)/nico-rest-site-agent:$(IMAGE_TAG) -f $(LOCAL_DOCKERFILE_DIR)/Dockerfile.nico-rest-site-agent ..
 	@if [ "$(LOCAL_CORE)" != "true" ]; then \
-		docker build -t $(IMAGE_REGISTRY)/nico-rest-mock-core:$(IMAGE_TAG) -f $(LOCAL_DOCKERFILE_DIR)/Dockerfile.nico-rest-mock-core . ; \
+		docker build -t $(IMAGE_REGISTRY)/nico-rest-mock-core:$(IMAGE_TAG) -f $(LOCAL_DOCKERFILE_DIR)/Dockerfile.nico-rest-mock-core .. ; \
 	fi
-	docker build -t $(IMAGE_REGISTRY)/nico-rest-db:$(IMAGE_TAG) -f $(LOCAL_DOCKERFILE_DIR)/Dockerfile.nico-rest-db .
-	docker build -t $(IMAGE_REGISTRY)/nico-rest-cert-manager:$(IMAGE_TAG) -f $(LOCAL_DOCKERFILE_DIR)/Dockerfile.nico-rest-cert-manager .
-	docker build -t $(IMAGE_REGISTRY)/nico-mcp:$(IMAGE_TAG) -f $(LOCAL_DOCKERFILE_DIR)/Dockerfile.nico-mcp .
+	docker build -t $(IMAGE_REGISTRY)/nico-rest-db:$(IMAGE_TAG) -f $(LOCAL_DOCKERFILE_DIR)/Dockerfile.nico-rest-db ..
+	docker build -t $(IMAGE_REGISTRY)/nico-rest-cert-manager:$(IMAGE_TAG) -f $(LOCAL_DOCKERFILE_DIR)/Dockerfile.nico-rest-cert-manager ..
+	docker build -t $(IMAGE_REGISTRY)/nico-mcp:$(IMAGE_TAG) -f $(LOCAL_DOCKERFILE_DIR)/Dockerfile.nico-mcp ..
 
 # Create kind cluster with port mappings
 kind-up:
@@ -706,7 +709,7 @@ helm-template:
 # Note: images must be loaded into kind before calling this (kind-load or kind-reset-infra)
 helm-deploy:
 	helm upgrade --install nico-rest $(UMBRELLA_CHART)/ \
-		--namespace nico-rest --create-namespace $(HELM_SET) $(HELM_SET_KEYCLOAK) $(HELM_SET_DB) \
+		--namespace nico-rest --create-namespace $(HELM_SET) $(HELM_SET_KEYCLOAK) $(HELM_SET_DB) $(HELM_SET_PROVIDER_DISCOVERY) \
 		--set nico-rest-api.nodePort.enabled=true \
 		--set nico-rest-api.nodePort.port=30388 \
 		--wait --timeout 5m

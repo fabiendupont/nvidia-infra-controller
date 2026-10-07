@@ -405,6 +405,18 @@ rms:
 
 extraEnv: []
 
+## Provider discovery: enables the ConfigMap-based provider registration
+## mechanism. When enabled, the API server watches for ConfigMaps labelled
+## nico.nvidia.com/provider=true in the specified namespace and dynamically
+## registers external providers.
+provider:
+  discovery:
+    ## enabled: set to true to activate provider discovery.
+    enabled: false
+    ## namespace: Kubernetes namespace to watch for provider ConfigMaps.
+    ## Defaults to the release namespace when empty.
+    namespace: ""
+
 ## Authentication for the /admin WebUI. CARBIDE_WEB_AUTH_TYPE in extraEnv
 ## takes precedence for compatibility with existing installations.
 webAuth:

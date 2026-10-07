@@ -9,6 +9,11 @@ rules:
   - apiGroups: ["cert-manager.io"]
     resources: ["certificaterequests"]
     verbs: ["create"]
+  {{- if .Values.provider.discovery.enabled }}
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+  {{- end }}
 ---
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1

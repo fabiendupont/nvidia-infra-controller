@@ -257,11 +257,31 @@ func InitAPIServer(cfg *config.Config, dbSession *cdb.Session, tc tsdkClient.Cli
 	}
 
 	if registry != nil {
+		// Provider routes must live under the org-scoped prefix so the auth
+		// middleware can extract :orgName. Providers return paths relative to
+		// their own service root (e.g. /api/v1/health/events); we mount them
+		// under /org/:orgName/:apiName/ so the full path becomes:
+		//   /<version>/org/:orgName/<apiName>/api/v1/health/events
+		//
+		// The providerGroup is stored on the registry so KubernetesDiscovery
+		// can register dynamically discovered providers' routes at runtime.
+		apiPathPrefix := "/org/:orgName/" + cfg.GetAPIName()
+		providerGroup := routeGroup.Group(apiPathPrefix)
+		// Inject the path prefix so the proxy handler can strip it before
+		// forwarding to the provider's internal Echo router.
+		providerGroup.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+			return func(c echo.Context) error {
+				// Build the literal prefix from the resolved URL params.
+				prefix := "/" + cfg.GetAPIRouteVersion() + "/org/" + c.Param("orgName") + "/" + cfg.GetAPIName()
+				c.Set("providerPathPrefix", prefix)
+				return next(c)
+			}
+		})
+		registry.SetProviderGroup(providerGroup)
 		for _, p := range registry.APIProviders() {
-			p.RegisterRoutes(routeGroup)
+			p.RegisterRoutes(providerGroup)
 		}
 
-		apiPathPrefix := "/org/:orgName/" + cfg.GetAPIName()
 		routeGroup.GET(apiPathPrefix+"/capabilities", provider.NewCapabilityHandler(registry).Handle)
 		provider.RegisterStubs(routeGroup, registry)
 	}

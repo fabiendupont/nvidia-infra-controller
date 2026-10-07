@@ -138,4 +138,64 @@ func (p *ComputeProvider) RegisterRoutes(group *echo.Group) {
 	group.Add(http.MethodPatch, prefix+"/tray/:id/power", apiHandler.NewUpdateTrayPowerStateHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
 	group.Add(http.MethodPatch, prefix+"/tray/:id/firmware", apiHandler.NewUpdateTrayFirmwareHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
 	group.Add(http.MethodGet, prefix+"/tray/:id/validation", apiHandler.NewValidateTrayHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
+
+	// DPU machine endpoints
+	group.Add(http.MethodGet, prefix+"/dpu", apiHandler.NewGetAllDpuMachinesHandler(p.dbSession, p.scp).Handle)
+	group.Add(http.MethodGet, prefix+"/dpu/:id", apiHandler.NewGetDpuMachineHandler(p.dbSession, p.scp).Handle)
+
+	// Machine label and sub-resource endpoints
+	group.Add(http.MethodGet, prefix+"/machine/label/key", apiHandler.NewGetAllMachineLabelKeyHandler(p.dbSession).Handle)
+	group.Add(http.MethodGet, prefix+"/machine/label/key/:key/value", apiHandler.NewGetAllMachineLabelValueHandler(p.dbSession).Handle)
+	group.Add(http.MethodGet, prefix+"/machine/:id/dpu", apiHandler.NewGetAllDpuMachineHandler(p.dbSession, p.scp).Handle)
+	group.Add(http.MethodPatch, prefix+"/machine/:id/dpu/reprovision", apiHandler.NewReprovisionMachineDpuHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodPatch, prefix+"/machine/:id/bmc/reset", apiHandler.NewResetMachineBMCHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodPatch, prefix+"/machine/:id/chassis/:chassisId/reset", apiHandler.NewResetMachineChassisHandler(p.dbSession, p.scp).Handle)
+	group.Add(http.MethodGet, prefix+"/machine/:id/health-report", apiHandler.NewGetAllMachineHealthReportHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodPut, prefix+"/machine/:id/health-report", apiHandler.NewCreateOrUpdateMachineHealthReportHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodDelete, prefix+"/machine/:id/health-report/:source", apiHandler.NewDeleteMachineHealthReportHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodPatch, prefix+"/machine/:id/power", apiHandler.NewMachinePowerControlHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodPost, prefix+"/machine/:id/decommission", apiHandler.NewDecommissionMachineHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodPost, prefix+"/machine/:id/validation/run", apiHandler.NewCreateMachineValidationRunHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodGet, prefix+"/machine/:id/validation/run", apiHandler.NewGetAllMachineValidationRunHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
+	group.Add(http.MethodGet, prefix+"/machine/:id/validation/result", apiHandler.NewGetMachineValidationResultsHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
+
+	// SKU admin endpoints
+	group.Add(http.MethodPost, prefix+"/sku", apiHandler.NewCreateSkuHandler(p.dbSession, p.scp).Handle)
+	group.Add(http.MethodPatch, prefix+"/sku/:id", apiHandler.NewUpdateSkuHandler(p.dbSession, p.scp).Handle)
+	group.Add(http.MethodDelete, prefix+"/sku/:id", apiHandler.NewDeleteSkuHandler(p.dbSession, p.scp).Handle)
+
+	// Task endpoints
+	group.Add(http.MethodPost, prefix+"/rack/task/:id/cancel", apiHandler.NewCancelTaskHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
+	group.Add(http.MethodGet, prefix+"/task", apiHandler.NewGetAllTaskHandler(p.dbSession, p.scp).Handle)
+	group.Add(http.MethodGet, prefix+"/task/:id", apiHandler.NewGetTaskHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
+	group.Add(http.MethodPost, prefix+"/task/:id/cancel", apiHandler.NewCancelTaskHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
+
+	// Task Rule endpoints
+	group.Add(http.MethodPost, prefix+"/task/rule", apiHandler.NewCreateTaskRuleHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
+	group.Add(http.MethodGet, prefix+"/task/rule", apiHandler.NewGetAllTaskRuleHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
+	group.Add(http.MethodGet, prefix+"/task/rule/:id", apiHandler.NewGetTaskRuleHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
+	group.Add(http.MethodPatch, prefix+"/task/rule/:id", apiHandler.NewUpdateTaskRuleHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
+	group.Add(http.MethodDelete, prefix+"/task/rule/:id", apiHandler.NewDeleteTaskRuleHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
+
+	// Task Run endpoints
+	group.Add(http.MethodPost, prefix+"/task/run", apiHandler.NewCreateTaskRunHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
+	group.Add(http.MethodGet, prefix+"/task/run", apiHandler.NewGetAllTaskRunHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
+	group.Add(http.MethodGet, prefix+"/task/run/:id", apiHandler.NewGetTaskRunHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
+	group.Add(http.MethodGet, prefix+"/task/run/:id/target", apiHandler.NewGetAllTaskRunTargetHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
+	group.Add(http.MethodPost, prefix+"/task/run/:id/pause", apiHandler.NewPauseTaskRunHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
+	group.Add(http.MethodPost, prefix+"/task/run/:id/resume", apiHandler.NewResumeTaskRunHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
+	group.Add(http.MethodPost, prefix+"/task/run/:id/advance", apiHandler.NewAdvanceTaskRunPhaseHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
+	group.Add(http.MethodPost, prefix+"/task/run/:id/cancel", apiHandler.NewCancelTaskRunHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
+
+	// Rack health report and task sub-routes
+	group.Add(http.MethodGet, prefix+"/rack/:id/health-report", apiHandler.NewGetAllRackHealthReportHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodPut, prefix+"/rack/:id/health-report", apiHandler.NewCreateOrUpdateRackHealthReportHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodDelete, prefix+"/rack/:id/health-report/:source", apiHandler.NewDeleteRackHealthReportHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodGet, prefix+"/rack/:id/task", apiHandler.NewGetRackTasksHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
+
+	// Tray health report and task sub-routes
+	group.Add(http.MethodGet, prefix+"/tray/:id/health-report", apiHandler.NewGetAllTrayHealthReportHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodPut, prefix+"/tray/:id/health-report", apiHandler.NewCreateOrUpdateTrayHealthReportHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodDelete, prefix+"/tray/:id/health-report/:source", apiHandler.NewDeleteTrayHealthReportHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodGet, prefix+"/tray/:id/task", apiHandler.NewGetTrayTasksHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
 }
