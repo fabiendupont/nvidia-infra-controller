@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+apiVersion: v2
+name: nico-spectrum-fabric-provider
+description: Manages Spectrum-X switch fabric via the NVUE REST API (VPC→VRF, Subnet→VxLAN VNI).
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - nico
+  - health
+  - provider
+  - grpc

@@ -122,4 +122,12 @@ func (p *NetworkingProvider) RegisterRoutes(group *echo.Group) {
 	group.Add(http.MethodPatch, prefix+"/domain/nvlink/:id/power", apiHandler.NewUpdateNVLinkDomainPowerStateHandler(p.dbSession, p.scp).Handle)
 	group.Add(http.MethodPatch, prefix+"/domain/nvlink/:id/firmware", apiHandler.NewUpdateNVLinkDomainFirmwareHandler(p.dbSession, p.scp).Handle)
 	group.Add(http.MethodGet, prefix+"/domain/nvlink/:id", apiHandler.NewGetNVLinkDomainHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
+
+	// SpectrumX Partition endpoints (spectrum-fabric provider owns the fabric sync;
+	// the HTTP CRUD routes live in the networking provider since they use only
+	// dbSession, scp, and cfg — no external SDN controller contact).
+	group.Add(http.MethodPost, prefix+"/spectrumx-partition", apiHandler.NewCreateSpectrumXPartitionHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodGet, prefix+"/spectrumx-partition", apiHandler.NewGetAllSpectrumXPartitionHandler(p.dbSession, p.cfg).Handle)
+	group.Add(http.MethodGet, prefix+"/spectrumx-partition/:id", apiHandler.NewGetSpectrumXPartitionHandler(p.dbSession, p.cfg).Handle)
+	group.Add(http.MethodDelete, prefix+"/spectrumx-partition/:id", apiHandler.NewDeleteSpectrumXPartitionHandler(p.dbSession, p.scp, p.cfg).Handle)
 }

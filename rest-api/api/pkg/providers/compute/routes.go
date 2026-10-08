@@ -198,4 +198,8 @@ func (p *ComputeProvider) RegisterRoutes(group *echo.Group) {
 	group.Add(http.MethodPut, prefix+"/tray/:id/health-report", apiHandler.NewCreateOrUpdateTrayHealthReportHandler(p.dbSession, p.scp, p.cfg).Handle)
 	group.Add(http.MethodDelete, prefix+"/tray/:id/health-report/:source", apiHandler.NewDeleteTrayHealthReportHandler(p.dbSession, p.scp, p.cfg).Handle)
 	group.Add(http.MethodGet, prefix+"/tray/:id/task", apiHandler.NewGetTrayTasksHandler(p.dbSession, p.tc, p.scp, p.cfg).Handle)
+
+	// Audit Log endpoints
+	group.Add(http.MethodGet, prefix+"/audit", apiHandler.NewGetAllAuditEntryHandler(p.dbSession).Handle)
+	group.Add(http.MethodGet, prefix+"/audit/:id", apiHandler.NewGetAuditEntryHandler(p.dbSession).Handle)
 }

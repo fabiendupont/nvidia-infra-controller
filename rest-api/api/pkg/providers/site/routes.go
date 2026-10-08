@@ -93,4 +93,30 @@ func (p *SiteProvider) RegisterRoutes(group *echo.Group) {
 	// ExpectedSwitch bulk operations
 	group.Add(http.MethodPut, prefix+"/expected-switch/all", apiHandler.NewReplaceAllExpectedSwitchesHandler(p.dbSession, p.scp, p.cfg).Handle)
 	group.Add(http.MethodDelete, prefix+"/expected-switch/all", apiHandler.NewDeleteAllExpectedSwitchesHandler(p.dbSession, p.scp, p.cfg).Handle)
+
+	// Credential management (Provider Admin)
+	group.Add(http.MethodPut, prefix+"/credential/bmc", apiHandler.NewCreateOrUpdateBMCCredentialHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodPost, prefix+"/credential/uefi", apiHandler.NewCreateUEFICredentialHandler(p.dbSession, p.scp).Handle)
+	group.Add(http.MethodPost, prefix+"/credential/rotation", apiHandler.NewRotateCredentialHandler(p.dbSession, p.scp).Handle)
+	group.Add(http.MethodGet, prefix+"/credential/rotation", apiHandler.NewGetCredentialRotationStatusHandler(p.dbSession, p.scp).Handle)
+
+	// Site Explorer (Provider Admin)
+	group.Add(http.MethodGet, prefix+"/site-explorer/endpoint", apiHandler.NewGetAllExploredEndpointHandler(p.dbSession, p.scp, p.cfg).Handle)
+	group.Add(http.MethodPost, prefix+"/site-explorer/endpoint/action", apiHandler.NewSiteExplorerEndpointActionHandler(p.dbSession, p.scp, p.cfg).Handle)
+
+	// Measured-boot trust approvals (Provider Admin)
+	group.Add(http.MethodPost, prefix+"/measured-boot/trusted-machine", apiHandler.NewCreateMeasuredBootTrustedMachineHandler(p.dbSession, p.scp).Handle)
+	group.Add(http.MethodGet, prefix+"/measured-boot/trusted-machine", apiHandler.NewGetAllMeasuredBootTrustedMachineHandler(p.dbSession, p.scp).Handle)
+	group.Add(http.MethodDelete, prefix+"/measured-boot/trusted-machine/:id", apiHandler.NewDeleteMeasuredBootTrustedMachineHandler(p.dbSession, p.scp).Handle)
+	group.Add(http.MethodPost, prefix+"/measured-boot/trusted-profile", apiHandler.NewCreateMeasuredBootTrustedProfileHandler(p.dbSession, p.scp).Handle)
+	group.Add(http.MethodGet, prefix+"/measured-boot/trusted-profile", apiHandler.NewGetAllMeasuredBootTrustedProfileHandler(p.dbSession, p.scp).Handle)
+	group.Add(http.MethodDelete, prefix+"/measured-boot/trusted-profile/:id", apiHandler.NewDeleteMeasuredBootTrustedProfileHandler(p.dbSession, p.scp).Handle)
+
+	// iPXE Template endpoints (read-only; templates synced from nico-core)
+	group.Add(http.MethodGet, prefix+"/ipxe-template", apiHandler.NewGetAllIpxeTemplateHandler(p.dbSession, p.tc, p.cfg).Handle)
+	group.Add(http.MethodGet, prefix+"/ipxe-template/:id", apiHandler.NewGetIpxeTemplateHandler(p.dbSession, p.tc, p.cfg).Handle)
+
+	// Host Firmware Config (Provider Admin)
+	group.Add(http.MethodPut, prefix+"/firmware-config/host", apiHandler.NewCreateOrUpdateHostFirmwareConfigHandler(p.dbSession, p.scp).Handle)
+	group.Add(http.MethodDelete, prefix+"/firmware-config/host", apiHandler.NewDeleteHostFirmwareConfigHandler(p.dbSession, p.scp).Handle)
 }
