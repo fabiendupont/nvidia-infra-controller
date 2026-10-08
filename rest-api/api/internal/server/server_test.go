@@ -411,7 +411,8 @@ func Test_Audit(t *testing.T) {
 	srv := InitAPIServer(cfg, dbSession, tc, tnc, scp, nil, nil)
 
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/%s/org/wdksahew1rqv/%s/site", cfg.GetAPIRouteVersion(), cfg.GetAPIName()), nil)
+	// POST /tenant is an identity route always owned by NewAPIRoutes (not a provider).
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/%s/org/wdksahew1rqv/%s/tenant", cfg.GetAPIRouteVersion(), cfg.GetAPIName()), nil)
 	srv.ServeHTTP(rec, req)
 	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 	// check if the audit log entry was created

@@ -71,6 +71,7 @@ var stubRoutes = map[string][]string{
 		"/tray/:id/health-report", "/tray/:id/health-report/*", "/tray/:id/task",
 		"/sku", "/sku/:id",
 		"/task", "/task/*",
+		"/audit", "/audit/*",
 	},
 	"site": {
 		"/site", "/site/:id", "/site/:id/status-history",
@@ -83,6 +84,12 @@ var stubRoutes = map[string][]string{
 		"/expected-rack-group", "/expected-rack-group/:id", "/expected-rack-group/all",
 		"/expected-switch", "/expected-switch/:id",
 		"/expected-switch/all",
+		"/credential/bmc", "/credential/uefi", "/credential/rotation",
+		"/site-explorer/endpoint", "/site-explorer/endpoint/action",
+		"/measured-boot/trusted-machine", "/measured-boot/trusted-machine/*",
+		"/measured-boot/trusted-profile", "/measured-boot/trusted-profile/*",
+		"/ipxe-template", "/ipxe-template/*",
+		"/firmware-config/host",
 	},
 	// Extended features — no monolith fallback.
 	"catalog":     {"/catalog/*"},
