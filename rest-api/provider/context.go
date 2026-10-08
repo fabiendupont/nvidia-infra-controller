@@ -57,6 +57,12 @@ type ProviderContext struct {
 	// activities. Nil when running in the API binary.
 	WorkflowSiteClientPool interface{}
 
+	// WorkflowConfig is the workflow configuration (*workflow/pkg/config.Config).
+	// Typed as interface{} so the api/ tree can store it without importing
+	// workflow/internal packages. Providers type-assert to *wfconfig.Config
+	// when constructing activities that require it (e.g. NewManageInstance).
+	WorkflowConfig interface{}
+
 	// ServiceEndpoints maps service names to gRPC addresses for
 	// cross-domain access. Passed to external providers in InitRequest.
 	ServiceEndpoints map[string]string

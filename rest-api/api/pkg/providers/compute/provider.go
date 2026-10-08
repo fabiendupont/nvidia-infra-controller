@@ -73,7 +73,7 @@ func (p *ComputeProvider) Init(ctx provider.ProviderContext) error {
 	p.temporalNamespace = ctx.TemporalNamespace
 	p.temporalQueue = ctx.TemporalQueue
 	p.workflowSiteClientPool = ctx.WorkflowSiteClientPool
-	p.workflowConfig = ctx.Config
+	p.workflowConfig = ctx.WorkflowConfig
 	p.hooks = ctx.Hooks
 	return nil
 }

@@ -28,7 +28,7 @@ import (
 	ctemporal "github.com/NVIDIA/infra-controller/rest-api/common/pkg/temporal"
 	cdb "github.com/NVIDIA/infra-controller/rest-api/db/pkg/db"
 
-	"github.com/NVIDIA/infra-controller/rest-api/workflow/internal/config"
+	"github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/config"
 
 	cwm "github.com/NVIDIA/infra-controller/rest-api/workflow/internal/metrics"
 	cwfh "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/health"
@@ -36,75 +36,17 @@ import (
 
 	sc "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/client/site"
 
-	machineActivity "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/activity/machine"
-	machineWorkflow "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/workflow/machine"
-
-	vpcActivity "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/activity/vpc"
-	vpcWorkflow "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/workflow/vpc"
-
-	subnetActivity "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/activity/subnet"
-	subnetWorkflow "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/workflow/subnet"
-
-	instanceActivity "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/activity/instance"
-	instanceWorkflow "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/workflow/instance"
-
+	// Core/identity activities and workflows — owned by the workflow binary.
+	// Domain activities (VPC, instance, machine, etc.) are owned by their
+	// respective in-tree providers and run as workers in the API binary.
 	userActivity "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/activity/user"
 	userWorkflow "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/workflow/user"
 
 	siteActivity "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/activity/site"
 	siteWorkflow "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/workflow/site"
 
-	sshKeyGroupActivity "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/activity/sshkeygroup"
-	sshKeyGroupWorkflow "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/workflow/sshkeygroup"
-
-	ibpActivity "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/activity/infinibandpartition"
-	sxpActivity "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/activity/spectrumxpartition"
-	ibpWorkflow "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/workflow/infinibandpartition"
-	sxpWorkflow "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/workflow/spectrumxpartition"
-
-	expectedMachineActivity "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/activity/expectedmachine"
-	expectedMachineWorkflow "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/workflow/expectedmachine"
-
-	expectedPowerShelfActivity "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/activity/expectedpowershelf"
-	expectedPowerShelfWorkflow "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/workflow/expectedpowershelf"
-
-	expectedRackActivity "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/activity/expectedrack"
-	expectedRackGroupActivity "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/activity/expectedrackgroup"
-	expectedRackWorkflow "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/workflow/expectedrack"
-	expectedRackGroupWorkflow "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/workflow/expectedrackgroup"
-
-	expectedSwitchActivity "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/activity/expectedswitch"
-	expectedSwitchWorkflow "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/workflow/expectedswitch"
-
 	tenantActivity "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/activity/tenant"
 	tenantWorkflow "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/workflow/tenant"
-
-	instanceTypeActivity "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/activity/instancetype"
-	instanceTypeWorkflow "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/workflow/instancetype"
-
-	networkSecurityGroupActivity "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/activity/networksecuritygroup"
-	networkSecurityGroupWorkflow "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/workflow/networksecuritygroup"
-
-	osImageActivity "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/activity/operatingsystem"
-	osImageWorkflow "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/workflow/operatingsystem"
-
-	ipxeTemplateActivity "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/activity/ipxetemplate"
-	ipxeTemplateWorkflow "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/workflow/ipxetemplate"
-
-	skuActivity "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/activity/sku"
-	skuWorkflow "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/workflow/sku"
-
-	vpcPrefixActivity "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/activity/vpcprefix"
-	vpcPrefixWorkflow "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/workflow/vpcprefix"
-
-	vpcPeeringActivity "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/activity/vpcpeering"
-	vpcPeeringWorkflow "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/workflow/vpcpeering"
-
-	dpuExtensionServiceActivity "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/activity/dpuextensionservice"
-	dpuExtensionServiceWorkflow "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/workflow/dpuextensionservice"
-
-	nvLinkLogicalPartitionActivity "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/activity/nvlinklogicalpartition"
-	nvLinkLogicalPartitionWorkflow "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/workflow/nvlinklogicalpartition"
 )
 
 const (
@@ -152,20 +94,12 @@ func run(ctx context.Context) error {
 	}
 	defer dbSession.Close()
 
-	// Initializer Temporal client
-	// Create the client object just once per process
 	log.Info().Msg("creating Temporal client")
 
-	// set up sentry client
 	sentryDSN := os.Getenv("SENTRY_DSN")
 	if sentryDSN != "" {
-		// Initialize Sentry
 		err := sentry.Init(sentry.ClientOptions{
-			Dsn: sentryDSN,
-			BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
-				// Modify or filter events before sending them to Sentry
-				return event
-			},
+			Dsn:              sentryDSN,
 			Debug:            true,
 			AttachStacktrace: true,
 		})
@@ -174,11 +108,8 @@ func run(ctx context.Context) error {
 		} else {
 			defer sentry.Flush(2 * time.Second)
 
-			// Configure Zerolog to use Sentry as a writer
 			sentryWriter, err := sentryZerolog.New(sentryZerolog.Config{
-				ClientOptions: sentry.ClientOptions{
-					Dsn: sentryDSN,
-				},
+				ClientOptions: sentry.ClientOptions{Dsn: sentryDSN},
 				Options: sentryZerolog.Options{
 					Levels:          []zerolog.Level{zerolog.ErrorLevel, zerolog.FatalLevel, zerolog.PanicLevel},
 					WithBreadcrumbs: true,
@@ -189,8 +120,6 @@ func run(ctx context.Context) error {
 				log.Error().Err(err).Msg("failed to create Sentry writer")
 			} else {
 				defer sentryWriter.Close()
-
-				// Use Sentry writer in Zerolog
 				log.Logger = zerolog.New(zerolog.MultiLevelWriter(os.Stderr, sentryWriter))
 			}
 		}
@@ -204,18 +133,12 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("failed to get Temporal config: %w", err)
 	}
 
-	// Shared options carry the payload converter every binary agrees on and,
-	// when transport tracing is configured, the OpenTelemetry interceptor.
-	// The SDK applies a client interceptor that also implements the worker
-	// interface to every worker built from that client, so the worker must
-	// not register it again.
 	tOptions, err := ctemporal.ClientOptions(tcfg.GetHostPort(), tcfg.Namespace, tcfg.ClientTLSCfg, tLogger)
 	if err != nil {
 		return fmt.Errorf("failed to build Temporal client options: %w", err)
 	}
 
 	tc, err = tsdkClient.NewLazyClient(tOptions)
-
 	if err != nil {
 		return fmt.Errorf("failed to create Temporal client: %w", err)
 	}
@@ -229,115 +152,25 @@ func run(ctx context.Context) error {
 
 	siteClientPool := sc.NewClientPool(tcfg)
 
-	log.Info().Str("Temporal Namespace", tcfg.Namespace).Msg("registering workflow and activities")
+	log.Info().Str("Temporal Namespace", tcfg.Namespace).Msg("registering core workflow and activities")
 
-	// Register workflows
+	// Core/identity workflows — these run on the main NICo task queue.
+	// Domain workflows (networking, compute, site) are registered by their
+	// respective providers running as workers in the API binary.
 	if tcfg.Namespace == cwfn.CloudNamespace {
-		// Workflows triggered by Cloud services
-		w.RegisterWorkflow(vpcWorkflow.DeleteVpcByID)
-
-		// Subnet workflows
-		w.RegisterWorkflow(subnetWorkflow.DeleteSubnetByID)
-
-		// Instance workflows
-		w.RegisterWorkflow(instanceWorkflow.DeleteInstanceByID)
-		w.RegisterWorkflow(instanceWorkflow.RebootInstanceByID)
-
-		// User workflows
 		w.RegisterWorkflow(userWorkflow.UpdateUserFromNGC)
 		w.RegisterWorkflow(userWorkflow.UpdateUserFromNGCWithAuxiliaryID)
-
-		// Site workflows
 		w.RegisterWorkflow(siteWorkflow.DeleteSiteComponents)
 		w.RegisterWorkflow(siteWorkflow.MonitorHealthForAllSites)
 		w.RegisterWorkflow(siteWorkflow.MonitorTemporalCertExpirationForAllSites)
 		w.RegisterWorkflow(siteWorkflow.MonitorSiteTemporalNamespaces)
-
-		// SSHKeyGroup workflows
-		w.RegisterWorkflow(sshKeyGroupWorkflow.SyncSSHKeyGroup)
-		w.RegisterWorkflow(sshKeyGroupWorkflow.DeleteSSHKeyGroup)
-
-		// InfiniBandPartition workflows
-		w.RegisterWorkflow(ibpWorkflow.DeleteInfiniBandPartitionByID)
 	} else if tcfg.Namespace == cwfn.SiteNamespace {
-		// Workflows triggered by Site Agent
-		// Machine Workflows
-		w.RegisterWorkflow(machineWorkflow.UpdateMachineInventory)
-
-		// VPC workflows
-		w.RegisterWorkflow(vpcWorkflow.UpdateVpcInventory)
-
-		// Subnet workflows
-		w.RegisterWorkflow(subnetWorkflow.UpdateSubnetInventory)
-
-		// Instance workflows
-		w.RegisterWorkflow(instanceWorkflow.UpdateInstanceInventory)
-
-		// Site workflows
 		w.RegisterWorkflow(siteWorkflow.UpdateAgentCertExpiry)
-		// V1 stays registered for the rollout window, where Cloud upgrades ahead of the Site
-		// Agents still publishing it.
 		w.RegisterWorkflow(siteWorkflow.UpdateSiteConfigInventory)
 		w.RegisterWorkflow(siteWorkflow.UpdateSiteConfigInventoryV2)
-
-		// SSHKeyGroup workflows
-		w.RegisterWorkflow(sshKeyGroupWorkflow.UpdateSSHKeyGroupInventory)
-
-		// InfiniBandPartition workflows
-		w.RegisterWorkflow(ibpWorkflow.UpdateInfiniBandPartitionInventory)
-		w.RegisterWorkflow(sxpWorkflow.UpdateSpectrumXPartitionInventory)
-
-		// Tenant workflow
 		w.RegisterWorkflow(tenantWorkflow.UpdateTenantInventory)
-
-		// InstanceType workflow
-		w.RegisterWorkflow(instanceTypeWorkflow.UpdateInstanceTypeInventory)
-
-		// NetworkSecurityGroup workflow
-		w.RegisterWorkflow(networkSecurityGroupWorkflow.UpdateNetworkSecurityGroupInventory)
-
-		// OS Image workflow
-		w.RegisterWorkflow(osImageWorkflow.UpdateOsImageInventory)
-
-		// Operating System inventory workflow (inbound reconcile from nico-core)
-		w.RegisterWorkflow(osImageWorkflow.UpdateOperatingSystemInventory)
-
-		// iPXE Template inventory workflow
-		w.RegisterWorkflow(ipxeTemplateWorkflow.UpdateIpxeTemplateInventory)
-
-		// VPC Prefix workflow
-		w.RegisterWorkflow(vpcPrefixWorkflow.UpdateVpcPrefixInventory)
-
-		// VPC Peering workflow
-		w.RegisterWorkflow(vpcPeeringWorkflow.UpdateVpcPeeringInventory)
-
-		// ExpectedMachine workflow
-		w.RegisterWorkflow(expectedMachineWorkflow.UpdateExpectedMachineInventory)
-
-		// ExpectedPowerShelf workflow
-		w.RegisterWorkflow(expectedPowerShelfWorkflow.UpdateExpectedPowerShelfInventory)
-
-		// ExpectedRack workflow
-		w.RegisterWorkflow(expectedRackWorkflow.UpdateExpectedRackInventory)
-		w.RegisterWorkflow(expectedRackGroupWorkflow.UpdateExpectedRackGroupInventory)
-
-		// ExpectedSwitch workflow
-		w.RegisterWorkflow(expectedSwitchWorkflow.UpdateExpectedSwitchInventory)
-
-		// SKU workflow
-		w.RegisterWorkflow(skuWorkflow.UpdateSkuInventory)
-
-		// DPU Extension Service workflow
-		w.RegisterWorkflow(dpuExtensionServiceWorkflow.UpdateDpuExtensionServiceInventory)
-
-		// NVLink Logical Partition workflow
-		w.RegisterWorkflow(nvLinkLogicalPartitionWorkflow.UpdateNVLinkLogicalPartitionInventory)
 	}
 
-	// Metric setup has to precede the activity registrations below, because the
-	// activities hold their own metric handles and the worker will not accept a
-	// registration once it is running. Only serving can wait for the goroutine
-	// further down.
 	mconfig := cfg.GetMetricsConfig()
 
 	var reg *prometheus.Registry
@@ -347,118 +180,29 @@ func run(ctx context.Context) error {
 		reg = prometheus.NewRegistry()
 		reg.MustRegister(collectors.NewGoCollector())
 
-		// Register core metrics
 		cm := cwm.NewCoreMetrics(reg, mconfig.Namespace)
-		// TODO: Set version here when available
 		cm.Info.With(prometheus.Labels{"version": "unknown", "namespace": tcfg.Namespace}).Set(1)
 
-		// Published by the Site health monitor cron, which runs on the Cloud queue.
 		siteHealthMetrics = cwm.NewSiteHealthMetrics(reg, mconfig.Namespace)
 
 		if tcfg.Namespace == cwfn.SiteNamespace {
-			// The inventory workflows that report these metrics only run here.
-
-			// Register common inventory metrics activity
 			inventoryMetricsManager := cwm.NewManageInventoryMetrics(reg, dbSession, mconfig.Namespace)
 			w.RegisterActivity(inventoryMetricsManager)
-
-			// Register inventory operation metrics activity
-			vpcLifecycleMetricsManager := vpcActivity.NewManageVpcLifecycleMetrics(reg, dbSession, mconfig.Namespace)
-			w.RegisterActivity(&vpcLifecycleMetricsManager)
-
-			subnetLifecycleMetricsManager := subnetActivity.NewManageSubnetLifecycleMetrics(reg, dbSession, mconfig.Namespace)
-			w.RegisterActivity(&subnetLifecycleMetricsManager)
-
-			instanceLifecycleMetricsManager := instanceActivity.NewManageInstanceLifecycleMetrics(reg, dbSession, mconfig.Namespace)
-			w.RegisterActivity(&instanceLifecycleMetricsManager)
 		}
 	}
 
-	// Register activities
-	// Common activities
-	machineManager := machineActivity.NewManageMachine(dbSession, siteClientPool)
-	w.RegisterActivity(&machineManager)
-
-	vpcManager := vpcActivity.NewManageVpc(dbSession, siteClientPool, tc)
-	w.RegisterActivity(&vpcManager)
-
-	subnetManager := subnetActivity.NewManageSubnet(dbSession, siteClientPool, tc)
-	w.RegisterActivity(&subnetManager)
-
-	instanceManager := instanceActivity.NewManageInstance(dbSession, siteClientPool, tc, cfg)
-	w.RegisterActivity(&instanceManager)
-
+	// Core/identity activities
 	siteManager := siteActivity.NewManageSite(dbSession, siteClientPool, tc, cfg, siteHealthMetrics)
 	w.RegisterActivity(&siteManager)
-
-	sshKeyGroupManager := sshKeyGroupActivity.NewManageSSHKeyGroup(dbSession, siteClientPool)
-	w.RegisterActivity(&sshKeyGroupManager)
-
-	ibpManager := ibpActivity.NewManageInfiniBandPartition(dbSession, siteClientPool)
-	w.RegisterActivity(&ibpManager)
-
-	sxpManager := sxpActivity.NewManageSpectrumXPartition(dbSession, siteClientPool)
-	w.RegisterActivity(&sxpManager)
 
 	tenantManager := tenantActivity.NewManageTenant(dbSession, siteClientPool)
 	w.RegisterActivity(&tenantManager)
 
-	instanceTypeManager := instanceTypeActivity.NewManageInstanceType(dbSession, siteClientPool)
-	w.RegisterActivity(&instanceTypeManager)
-
-	networkSecurityGroupManager := networkSecurityGroupActivity.NewManageNetworkSecurityGroup(dbSession, siteClientPool)
-	w.RegisterActivity(&networkSecurityGroupManager)
-
-	osImageManager := osImageActivity.NewManageOsImage(dbSession, siteClientPool)
-	w.RegisterActivity(&osImageManager)
-
-	ipxeTemplateManager := ipxeTemplateActivity.NewManageIpxeTemplate(dbSession, siteClientPool)
-	w.RegisterActivity(&ipxeTemplateManager)
-
-	vpcPrefixManager := vpcPrefixActivity.NewManageVpcPrefix(dbSession, siteClientPool)
-	w.RegisterActivity(&vpcPrefixManager)
-
-	vpcPeeringManager := vpcPeeringActivity.NewManageVpcPeering(dbSession, siteClientPool)
-	w.RegisterActivity(&vpcPeeringManager)
-
-	// ExpectedMachine activities
-	expectedMachineManager := expectedMachineActivity.NewManageExpectedMachine(dbSession, siteClientPool)
-	w.RegisterActivity(&expectedMachineManager)
-
-	// ExpectedPowerShelf activities
-	expectedPowerShelfManager := expectedPowerShelfActivity.NewManageExpectedPowerShelf(dbSession, siteClientPool)
-	w.RegisterActivity(&expectedPowerShelfManager)
-
-	// ExpectedRack activities
-	expectedRackManager := expectedRackActivity.NewManageExpectedRack(dbSession, siteClientPool)
-	w.RegisterActivity(&expectedRackManager)
-	expectedRackGroupManager := expectedRackGroupActivity.NewManageExpectedRackGroup(dbSession, siteClientPool)
-	w.RegisterActivity(&expectedRackGroupManager)
-
-	// ExpectedSwitch activities
-	expectedSwitchManager := expectedSwitchActivity.NewManageExpectedSwitch(dbSession, siteClientPool)
-	w.RegisterActivity(&expectedSwitchManager)
-
-	// SKU activities
-	skuManager := skuActivity.NewManageSku(dbSession, siteClientPool)
-	w.RegisterActivity(&skuManager)
-
-	// DPU Extension Service activities
-	dpuExtensionServiceManager := dpuExtensionServiceActivity.NewManageDpuExtensionService(dbSession, siteClientPool)
-	w.RegisterActivity(&dpuExtensionServiceManager)
-
-	// NVLink Logical Partition activities
-	nvLinkLogicalPartitionManager := nvLinkLogicalPartitionActivity.NewManageNVLinkLogicalPartition(dbSession, siteClientPool)
-	w.RegisterActivity(&nvLinkLogicalPartitionManager)
-
 	if tcfg.Namespace == cwfn.CloudNamespace {
-		// User activities
 		userManager := userActivity.NewManageUser(dbSession, cfg)
 		w.RegisterActivity(&userManager)
 	}
 
-	// A failing health or metrics server stops the worker so the failure
-	// leaves through run instead of a panic in a goroutine.
 	serveErrs := make(chan error, 2)
 	serve := func(name, addr string) {
 		go func() {
@@ -491,8 +235,7 @@ func run(ctx context.Context) error {
 		interrupt <- struct{}{}
 	}()
 
-	// Start listening to the Task Queue
-	log.Info().Str("Temporal Namespace", tcfg.Namespace).Msg("starting Temporal worker")
+	log.Info().Str("Temporal Namespace", tcfg.Namespace).Msg("starting core Temporal worker")
 	err = w.Run(interrupt)
 	if err != nil {
 		return fmt.Errorf("failed to run worker for Temporal namespace %s: %w", tcfg.Namespace, err)
@@ -503,26 +246,22 @@ func run(ctx context.Context) error {
 	default:
 	}
 
-	// Trigger cron workflow
 	if tcfg.Namespace == cwfn.CloudNamespace {
 		_, err := siteWorkflow.ExecuteMonitorHealthForAllSitesWorkflow(ctx, tc)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to trigger Site Health Monitor workflow")
 		}
 
-		// Trigger MonitorTemporalCertExpirationForAllSites
 		_, err = siteWorkflow.ExecuteMonitorTemporalCertExpirationForAllSites(ctx, tc)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to trigger Temporal Cert Expiration Monitor workflow")
 		}
 
-		// Trigger MonitorSiteTemporalNamespaces
 		_, err = siteWorkflow.ExecuteMonitorSiteTemporalNamespaces(ctx, tc)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to trigger Monitor Site Temporal Namespaces workflow")
 		}
 	}
 
-	// NOTE: Log messages past this point do not show up in the log output
 	return nil
 }
