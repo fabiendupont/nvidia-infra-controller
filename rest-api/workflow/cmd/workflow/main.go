@@ -229,37 +229,22 @@ func run(ctx context.Context) error {
 
 	siteClientPool := sc.NewClientPool(tcfg)
 
-	log.Info().Str("Temporal Namespace", tcfg.Namespace).Msg("registering workflow and activities")
+	log.Info().Str("Temporal Namespace", tcfg.Namespace).Msg("registering core workflow and activities")
 
-	// Register workflows
+	// Core/identity workflows — these run on the main NICo task queue.
+	// Domain workflows (networking, compute, site) are registered by their
+	// respective providers running as workers in the API binary.
 	switch tcfg.Namespace {
 	case cwfn.CloudNamespace:
-		// Workflows triggered by Cloud services
-		w.RegisterWorkflow(vpcWorkflow.DeleteVpcByID)
-
-		// Subnet workflows
-		w.RegisterWorkflow(subnetWorkflow.DeleteSubnetByID)
-
-		// Instance workflows
-		w.RegisterWorkflow(instanceWorkflow.DeleteInstanceByID)
-		w.RegisterWorkflow(instanceWorkflow.RebootInstanceByID)
-
 		// User workflows
 		w.RegisterWorkflow(userWorkflow.UpdateUserFromNGC)
 		w.RegisterWorkflow(userWorkflow.UpdateUserFromNGCWithAuxiliaryID)
 
-		// Site workflows
+		// Site health/cert/namespace monitoring workflows
 		w.RegisterWorkflow(siteWorkflow.DeleteSiteComponents)
 		w.RegisterWorkflow(siteWorkflow.MonitorHealthForAllSites)
 		w.RegisterWorkflow(siteWorkflow.MonitorTemporalCertExpirationForAllSites)
 		w.RegisterWorkflow(siteWorkflow.MonitorSiteTemporalNamespaces)
-
-		// SSHKeyGroup workflows
-		w.RegisterWorkflow(sshKeyGroupWorkflow.SyncSSHKeyGroup)
-		w.RegisterWorkflow(sshKeyGroupWorkflow.DeleteSSHKeyGroup)
-
-		// InfiniBandPartition workflows
-		w.RegisterWorkflow(ibpWorkflow.DeleteInfiniBandPartitionByID)
 	case cwfn.SiteNamespace:
 		// Deletes successful inventory workflows before the namespace retention would
 		w.RegisterWorkflow(siteWorkflow.DeleteSuccessfulInventoryWorkflows)

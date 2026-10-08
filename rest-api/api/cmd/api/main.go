@@ -18,6 +18,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	tClient "go.temporal.io/sdk/client"
+	tsdkWorker "go.temporal.io/sdk/worker"
 
 	cdb "github.com/NVIDIA/infra-controller/rest-api/db/pkg/db"
 
@@ -29,6 +30,8 @@ import (
 
 	sc "github.com/NVIDIA/infra-controller/rest-api/api/pkg/client/site"
 	"github.com/NVIDIA/infra-controller/rest-api/provider"
+	wfconfig "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/config"
+	wfsc "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/client/site"
 
 	// Imports for API doc generation
 	_ "github.com/NVIDIA/infra-controller/rest-api/api/pkg/api/model"
@@ -161,22 +164,55 @@ func run(ctx context.Context) (retErr error) {
 		serviceEndpoints["compute"] = svcServer.Address()
 	}
 
+	wfCfg := wfconfig.NewConfig()
+	defer wfCfg.Close()
+
+	wfTcfg, err := wfCfg.GetTemporalConfig()
+	if err != nil {
+		log.Warn().Err(err).Msg("workflow temporal config unavailable; provider workflow workers disabled")
+		wfTcfg = nil
+	}
+	var wfScp *wfsc.ClientPool
+	if wfTcfg != nil {
+		wfScp = wfsc.NewClientPool(wfTcfg)
+	}
+
 	apiPathPrefix := "/org/:orgName/" + cfg.GetAPIName()
 	providerCtx := provider.ProviderContext{
-		DB:               dbSession,
-		Temporal:         tc,
-		TemporalNS:       tnc,
-		SiteClientPool:   scp,
-		Config:           cfg,
-		Registry:         registry,
-		APIPathPrefix:    apiPathPrefix,
-		ServiceEndpoints: serviceEndpoints,
+		DB:                     dbSession,
+		Temporal:               tc,
+		TemporalNS:             tnc,
+		SiteClientPool:         scp,
+		Config:                 cfg,
+		WorkflowConfig:         wfCfg,
+		WorkflowSiteClientPool: wfScp,
+		Registry:               registry,
+		APIPathPrefix:          apiPathPrefix,
+		ServiceEndpoints:       serviceEndpoints,
 	}
 
 	if err := registry.InitAll(providerCtx); err != nil {
 		return fmt.Errorf("failed to initialize providers: %w", err)
 	}
 	log.Info().Int("count", len(registry.APIProviders())).Msg("providers initialized")
+
+	// Start a Temporal worker for each in-tree provider that owns its task queue.
+	for _, p := range registry.WorkflowProviders() {
+		if p.TaskQueue() == "" {
+			continue
+		}
+		w := tsdkWorker.New(tc, p.TaskQueue(), tsdkWorker.Options{
+			WorkflowPanicPolicy: tsdkWorker.FailWorkflow,
+		})
+		p.RegisterWorkflows(w)
+		p.RegisterActivities(w)
+		go func(worker tsdkWorker.Worker, queue string) {
+			log.Info().Str("queue", queue).Msg("starting provider workflow worker")
+			if err := worker.Run(tsdkWorker.InterruptCh()); err != nil {
+				log.Error().Err(err).Str("queue", queue).Msg("provider workflow worker stopped")
+			}
+		}(w, p.TaskQueue())
+	}
 
 	if ns := os.Getenv("NICO_K8S_DISCOVERY_NAMESPACE"); ns != "" {
 		kd, err := provider.NewKubernetesDiscovery(registry, ns, providerCtx)
