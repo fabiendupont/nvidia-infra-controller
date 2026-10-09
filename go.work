@@ -10,6 +10,7 @@ use (
 	./providers/catalog
 	./providers/dpfhcp
 	./providers/fabric-ufm
+	./providers/provisioner-metal3
 	./providers/spectrum-fabric
 	./providers/firmware
 	./providers/fulfillment

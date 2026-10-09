@@ -1,0 +1,22 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+{{- if .Values.customIPA.enabled }}
+# Provisioning CR is cluster-scoped and configures Metal3's IPA ramdisk
+# for the entire cluster. Enabling customIPA replaces the stock OCP IPA
+# with the NICo-extended image that adds TPM, IB, GPU, and DPU managers.
+# WARNING: this affects ALL BareMetalHost resources, not just NICo-managed ones.
+apiVersion: metal3.io/v1alpha1
+kind: Provisioning
+metadata:
+  name: provisioning-configuration
+  annotations:
+    meta.helm.sh/release-name: {{ .Release.Name }}
+    meta.helm.sh/release-namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "nico-provisioner-metal3.labels" . | nindent 4 }}
+spec:
+  deployRamdiskURL: {{ .Values.customIPA.image | quote }}
+  {{- if .Values.customIPA.kernelURL }}
+  deployKernelURL: {{ .Values.customIPA.kernelURL | quote }}
+  {{- end }}
+{{- end }}

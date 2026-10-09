@@ -1,0 +1,91 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+replicaCount: 1
+
+global:
+  image:
+    repository: localhost:5000
+    tag: latest
+    pullPolicy: IfNotPresent
+  imagePullSecrets: []
+
+image:
+  name: nico-provisioner-metal3
+  # override: ""  # set to use a fully-qualified image reference
+
+service:
+  port: 9443
+
+# Metal3 Bare Metal Operator configuration
+metal3:
+  # namespace is the Kubernetes namespace where BareMetalHost CRs and
+  # BMC credential Secrets will be created. Defaults to metal3-system.
+  namespace: metal3-system
+
+# kubeconfig selects how the provider authenticates to the management cluster.
+kubeconfig:
+  # inCluster: when true, use the pod's service-account token (default for
+  # providers deployed in the same cluster as BMO).
+  inCluster: true
+  # secretName: when non-empty, mount this Secret as a kubeconfig volume
+  # (for providers that talk to a remote cluster running BMO).
+  secretName: ""
+
+# Ironic Inspector integration for post-machine-inspect attestation.
+# When inspectorURL is empty, the post-machine-inspect hook passes through
+# without fetching introspection data (TPM EK correlation is skipped with a warning).
+ironic:
+  # inspectorURL is the Ironic Inspector API base URL.
+  # Example: http://ironic-inspector.metal3-system:5050
+  inspectorURL: ""
+  # token is an optional Bearer token for authenticating to Ironic Inspector.
+  token: ""
+
+# Machine routing annotation. NICo machines must carry this annotation to be
+# provisioned via Metal3 Bare Metal Operator rather than NICo Core gRPC.
+# Set on expectedMachine resources before NICo discovers the physical machine:
+#
+#   kubectl patch expectedmachine <name> -n <ns> --type=merge \
+#     -p '{"metadata":{"annotations":{"nico.nvidia.com/provisioner":"metal3"}}}'
+#
+# Or declare it in the expectedMachine manifest:
+#   metadata:
+#     annotations:
+#       nico.nvidia.com/provisioner: metal3
+#
+# Machines without this annotation use the default NICo Core gRPC path.
+provisionerAnnotation:
+  key: "nico.nvidia.com/provisioner"
+  value: "metal3"
+
+# customIPA overrides the cluster-scoped Provisioning CR to use the
+# NICo-extended IPA image (quay.io/rh-ecosystem-edge/nico-ipa), which adds
+# hardware managers for TPM 2.0, InfiniBand, GPU, and DPU inspection.
+# Enabling this affects ALL BareMetalHost resources in the cluster.
+# Build the image from: https://github.com/rh-ecosystem-edge/nico-ipa-extensions
+customIPA:
+  enabled: false
+  # Use the digest form for production: quay.io/rh-ecosystem-edge/nico-ipa@sha256:...
+  image: "quay.io/rh-ecosystem-edge/nico-ipa:latest"
+  # kernelURL: leave empty to use the kernel embedded in the OCI image.
+  kernelURL: ""
+
+# RBAC: creates a ClusterRole granting access to BareMetalHost CRs.
+rbac:
+  create: true
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+certificate:
+  enabled: false
+  secretName: nico-provisioner-metal3-tls
+  issuerRef:
+    name: nico-rest-ca
+    kind: Issuer

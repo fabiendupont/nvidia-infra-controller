@@ -63,6 +63,15 @@ message ProviderInfo {
 }
 
 // InitRequest carries core runtime context to the provider.
+//
+// Well-known service_endpoints keys:
+//   "networking" — NicoNetworkingService gRPC address
+//   "compute"    — NicoComputeService gRPC address
+//   "switch"     — NicoSwitchService gRPC address
+//
+// Well-known config keys:
+//   "site_ids" — comma-separated UUIDs of sites this provider manages;
+//                used by NicoSwitchService to scope ListSwitches results.
 message InitRequest {
   string temporal_endpoint = 1;
   string temporal_namespace = 2;

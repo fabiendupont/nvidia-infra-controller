@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+# Discovery ConfigMap: NICo API watches for the nico.nvidia.com/provider label
+# and reads the provider-address annotation to connect over gRPC.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nico-provisioner-metal3.name" . }}
+  namespace: {{ include "nico-provisioner-metal3.namespace" . }}
+  labels:
+    {{- include "nico-provisioner-metal3.labels" . | nindent 4 }}
+  annotations:
+    nico.nvidia.com/provider-address: "{{ include "nico-provisioner-metal3.name" . }}.{{ include "nico-provisioner-metal3.namespace" . }}.svc:{{ .Values.service.port }}"
+    nico.nvidia.com/provider-name: "nico-metal3-provisioner"
+    nico.nvidia.com/provider-version: "{{ .Chart.AppVersion }}"
+data:
+  provider: nico-metal3-provisioner
+  metal3_namespace: {{ .Values.metal3.namespace | quote }}

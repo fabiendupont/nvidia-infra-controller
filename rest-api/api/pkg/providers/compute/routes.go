@@ -27,10 +27,10 @@ import (
 
 // RegisterRoutes registers all compute-related API routes.
 func (p *ComputeProvider) RegisterRoutes(group *echo.Group) {
-	prefix := p.apiPathPrefix
+	prefix := ""
 
 	// Instance endpoints
-	group.Add(http.MethodPost, prefix+"/instance", apiHandler.NewCreateInstanceHandler(p.dbSession, p.tc, p.scp, p.cfg, p.dps).Handle)
+	group.Add(http.MethodPost, prefix+"/instance", apiHandler.NewCreateInstanceHandler(p.dbSession, p.tc, p.scp, p.cfg, p.dps).WithHooks(p.hooks).Handle)
 	group.Add(http.MethodPost, prefix+"/instance/batch", apiHandler.NewBatchCreateInstanceHandler(p.dbSession, p.tc, p.scp, p.cfg, p.dps).Handle)
 	group.Add(http.MethodGet, prefix+"/instance", apiHandler.NewGetAllInstanceHandler(p.dbSession, p.tc, p.cfg).Handle)
 	group.Add(http.MethodGet, prefix+"/instance/:id", apiHandler.NewGetInstanceHandler(p.dbSession, p.tc, p.cfg).Handle)

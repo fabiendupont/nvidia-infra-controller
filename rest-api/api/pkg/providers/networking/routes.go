@@ -27,7 +27,7 @@ import (
 
 // RegisterRoutes registers all networking-related API routes on the given group.
 func (p *NetworkingProvider) RegisterRoutes(group *echo.Group) {
-	prefix := p.apiPathPrefix
+	prefix := ""
 
 	// VPC endpoints
 	group.Add(http.MethodPost, prefix+"/vpc", apiHandler.NewCreateVPCHandler(p.dbSession, p.tc, p.scp, p.cfg, p.dps).Handle)

@@ -277,7 +277,7 @@ func InitAPIServer(cfg *config.Config, dbSession *cdb.Session, tc tsdkClient.Cli
 				return next(c)
 			}
 		})
-		registry.SetProviderGroup(providerGroup)
+		registry.SetProviderGroup(providerGroup, "/" + cfg.GetAPIRouteVersion() + "/org/:orgName/" + cfg.GetAPIName())
 		for _, p := range registry.APIProviders() {
 			p.RegisterRoutes(providerGroup)
 		}

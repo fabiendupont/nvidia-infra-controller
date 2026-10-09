@@ -58,6 +58,18 @@ type CreateInstanceHandler struct {
 	scp       *sc.ClientPool
 	cfg       *config.Config
 	dps       dpsclient.PowerProvisioner
+	// hooks fires lifecycle hooks to external providers. Nil when no hook runner
+	// is available (e.g. in tests or when the provider registry is empty).
+	hooks provisionHookFirer
+}
+
+// provisionHookFirer is the subset of provider.HookFirer used by instance handlers.
+// Declared locally to avoid importing rest-api/provider/ from handler/ (which would
+// create a layering violation: handlers are in api/pkg/api/handler, providers are
+// in api/pkg/providers, and the hook runner is in provider/).
+// The concrete implementation is provider.HookRunner; callers pass it as interface{}.
+type provisionHookFirer interface {
+	FireAsync(ctx context.Context, feature, event string, payload interface{})
 }
 
 // stringPtrEqual reports whether two optional strings hold the same value,
@@ -191,6 +203,13 @@ func NewCreateInstanceHandler(dbSession *cdb.Session, tc temporalClient.Client, 
 		cfg:       cfg,
 		dps:       dps,
 	}
+}
+
+// WithHooks returns a copy of the handler wired with a hook firer.
+// Call this from the compute provider's routes.go to enable lifecycle hook dispatch.
+func (h CreateInstanceHandler) WithHooks(hooks provisionHookFirer) CreateInstanceHandler {
+	h.hooks = hooks
+	return h
 }
 
 // validateTemplatedIpxeOsForSite guards the Templated iPXE Operating System
@@ -2094,6 +2113,28 @@ func (cih CreateInstanceHandler) Handle(c echo.Context) error {
 		}
 
 		logger.Info().Msg("triggering instance create workflow")
+
+		// Fire pre-machine-provision async hook. External provisioners (e.g. Metal3)
+		// receive this to prepare for provisioning (e.g. create BareMetalHost CR).
+		// The hook is non-blocking: provisioning continues via Temporal regardless of
+		// whether a provider is registered. Sync interception (where a provider fully
+		// replaces the Core gRPC path) requires the hook to be fired from within the
+		// Temporal workflow activity, which is tracked in the Metal3 provider roadmap.
+		if cih.hooks != nil {
+			machineLabel := ""
+			if machine := instance.Machine; machine != nil {
+				if v, ok := machine.Labels["nico.nvidia.com/provisioner"]; ok {
+					machineLabel = v
+				}
+			}
+			cih.hooks.FireAsync(ctx, "compute", "pre-machine-provision", map[string]interface{}{
+				"machine_id":   createInstanceRequest.GetMachineId().GetId(),
+				"instance_id":  instance.ID.String(),
+				"provisioner":  machineLabel,
+				"os_image_id":  createInstanceRequest.GetConfig().GetOs().GetOsImageId().GetValue(),
+				"hostname":     createInstanceRequest.GetConfig().GetTenant().GetHostname(),
+			})
+		}
 
 		// Add context deadlines
 		ctx, cancel := context.WithTimeout(ctx, cutil.WorkflowContextTimeout)

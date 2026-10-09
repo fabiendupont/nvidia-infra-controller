@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync/atomic"
 
 	"github.com/labstack/echo/v4"
@@ -35,15 +36,16 @@ import (
 // independent Kubernetes Deployment. It implements Provider and APIProvider,
 // proxying HTTP requests over gRPC.
 type ExternalProvider struct {
-	info      *providerv1.ProviderInfo
-	conn      *grpc.ClientConn
-	client    providerv1.NicoProviderClient
-	address   string
-	closed    atomic.Bool
-	routes    []*providerv1.Route
-	hooks     []SyncHook
-	reactions []Reaction
-	specYAML  []byte
+	info        *providerv1.ProviderInfo
+	conn        *grpc.ClientConn
+	client      providerv1.NicoProviderClient
+	address     string
+	closed      atomic.Bool
+	routes      []*providerv1.Route
+	hooks       []SyncHook
+	reactions   []Reaction
+	specYAML    []byte
+	routePrefix string // parameterized group prefix, e.g. "/v2/org/:orgName/nico"
 }
 
 // Name returns the provider's name as reported by the sidecar.
@@ -191,10 +193,21 @@ func (p *ExternalProvider) Shutdown(ctx context.Context) error {
 
 // RegisterRoutes registers proxy handlers for each route declared by the sidecar.
 func (p *ExternalProvider) RegisterRoutes(group *echo.Group) {
+	// p.routePrefix is set by connectProvider when the group is known.
+	// It is the parameterized group prefix, e.g. "/v2/org/:orgName/nico".
 	for _, route := range p.routes {
 		method := route.GetMethod()
 		path := route.GetPath()
-		handler := p.proxyHandler
+
+		// Capture routePrefix for the closure.
+		prefix := p.routePrefix
+		base := p.proxyHandler
+		handler := func(c echo.Context) error {
+			// Resolve parameterized prefix at request time.
+			resolved := strings.NewReplacer(":orgName", c.Param("orgName")).Replace(prefix)
+			c.Set("providerPathPrefix", resolved)
+			return base(c)
+		}
 
 		switch method {
 		case "GET":

@@ -15,14 +15,49 @@ import (
 
 	cClient "github.com/NVIDIA/infra-controller/rest-api/site-workflow/pkg/grpc/client"
 
+	mp "github.com/NVIDIA/infra-controller/rest-api/api/pkg/provisioner"
 	corev1 "github.com/NVIDIA/infra-controller/rest-api/proto/core/gen/v1"
 
 	swe "github.com/NVIDIA/infra-controller/rest-api/site-workflow/pkg/error"
 )
 
+// provisionHookPayload is the payload emitted on pre/post-machine-provision hooks.
+type provisionHookPayload struct {
+	MachineID   string `json:"machine_id"`
+	Provisioner string `json:"provisioner"`
+	// Hostname is set from InstanceAllocationRequest.Config.Tenant.Hostname when present.
+	Hostname string `json:"hostname,omitempty"`
+	// OSImageID is set from InstanceAllocationRequest.Config.Os.OsImageId when present.
+	// The Metal3 provider uses this to resolve the image URL from NICo's OS registry.
+	OSImageID string `json:"os_image_id,omitempty"`
+	// BMCAddress, BMCUsername, BMCPassword are NOT populated here — the Metal3
+	// provider reads them from its own operator-supplied configuration (Kubernetes
+	// Secrets / environment variables) since BMC credentials are managed via Vault,
+	// not stored in NICo's DB.
+	OSType string `json:"os_type,omitempty"` // "nico-managed" | "user-provisioned"
+}
+
+// deprovisionHookPayload is the payload emitted on pre/post-machine-deprovision hooks.
+type deprovisionHookPayload struct {
+	MachineID   string `json:"machine_id"`
+	Provisioner string `json:"provisioner"`
+}
+
 // ManageInstance is an activity wrapper for Instance management tasks that allows injecting DB access
 type ManageInstance struct {
 	coreGrpcAtomicClient *cClient.CoreGrpcAtomicClient
+	// provisioner is the pluggable bare-metal provisioning backend. When non-nil
+	// and not CoreGRPCProvisioner, CreateInstanceOnSite and DeleteInstanceOnSite
+	// delegate to it instead of calling Core gRPC. Nil means Core gRPC (legacy path).
+	// Deprecated: prefer registry for multi-backend support.
+	provisioner mp.MachineProvisioner
+	// registry maps per-machine annotation values to MachineProvisioner backends.
+	// When set, it takes precedence over provisioner for backend selection.
+	// The annotation key is mp.AnnotationKey ("nico.nvidia.com/provisioner").
+	registry *mp.Registry
+	// hooks fires lifecycle hooks to registered providers. Nil when no hook
+	// runner is available (e.g. in the legacy workflow binary path).
+	hooks mp.HookFirer
 }
 
 // Function Update NICo Instance with the Site Controller
@@ -82,7 +117,81 @@ func (mm *ManageInstance) CreateInstanceOnSite(ctx context.Context, request *cor
 		return temporal.NewNonRetryableApplicationError(err.Error(), swe.ErrTypeInvalidRequest, err)
 	}
 
-	// Call Core gRPC API endpoint
+	// Select the provisioner backend for this machine. When a registry is set,
+	// use the per-machine annotation to choose the backend; fall back to the
+	// single-provisioner field for backward compatibility with callers that use
+	// NewManageInstanceWithProvisioner directly.
+	var selectedProvisioner mp.MachineProvisioner
+	if mm.registry != nil {
+		// Annotation-based selection: read nico.nvidia.com/provisioner from the
+		// allocation request's Metadata.Labels. The API handler copies the
+		// machine's nico.nvidia.com/provisioner label into the request metadata
+		// when dispatching; if absent, CoreGRPCProvisioner is used unchanged.
+		annotationValue := ""
+		for _, label := range request.GetMetadata().GetLabels() {
+			if label.GetKey() == mp.AnnotationKey {
+				annotationValue = label.GetValue()
+				break
+			}
+		}
+		selectedProvisioner = mm.registry.Select(annotationValue)
+	} else {
+		selectedProvisioner = mm.provisioner
+	}
+
+	// Delegate to the pluggable provisioner when one is registered and it is
+	// not the Core gRPC sentinel (which means "use the existing path below").
+	if selectedProvisioner != nil && selectedProvisioner.Name() != mp.BackendCoreGRPC {
+		provisionerName := selectedProvisioner.Name()
+		machineID := request.GetMachineId().GetId()
+
+		// Build the provision request with everything available from the allocation request.
+		// BMC URL and credentials are intentionally omitted: they are managed via Vault and
+		// supplied to the external provisioner through operator-configured Kubernetes Secrets
+		// or environment variables, not through NICo's DB or proto.
+		provReq := mp.ProvisionRequest{
+			MachineID: machineID,
+			Hostname:  request.GetConfig().GetTenant().GetHostname(),
+			Extra:     map[string]string{},
+		}
+		if osID := request.GetConfig().GetOs().GetOsImageId(); osID != nil {
+			provReq.Extra["os_image_id"] = osID.GetValue()
+		}
+
+		// Fire pre-machine-provision sync hook. If a registered provider (e.g. Metal3)
+		// returns an error, provisioning is aborted — the hook acts as a gate.
+		if mm.hooks != nil {
+			hookPayload := provisionHookPayload{
+				MachineID:   machineID,
+				Provisioner: provisionerName,
+				Hostname:    provReq.Hostname,
+				OSImageID:   provReq.Extra["os_image_id"],
+				OSType:      "nico-managed",
+			}
+			if err := mm.hooks.FireSync(ctx, "compute", "pre-machine-provision", hookPayload); err != nil {
+				logger.Warn().Err(err).Str("provisioner", provisionerName).Msg("pre-machine-provision hook rejected provisioning")
+				return swe.WrapErr(err)
+			}
+		}
+
+		logger.Info().Str("provisioner", provisionerName).Msg("delegating to external provisioner")
+		if err := selectedProvisioner.Provision(ctx, provReq); err != nil {
+			logger.Warn().Err(err).Str("provisioner", provisionerName).Msg("external provisioner failed")
+			return swe.WrapErr(err)
+		}
+
+		// Fire post-machine-provision async hook (non-blocking).
+		if mm.hooks != nil {
+			mm.hooks.FireAsync(ctx, "compute", "post-machine-provision", provisionHookPayload{
+				MachineID:   machineID,
+				Provisioner: provisionerName,
+				OSType:      "nico-managed",
+			})
+		}
+		return nil
+	}
+
+	// Call Core gRPC API endpoint (default path)
 	grpcClient := mm.coreGrpcAtomicClient.GetClient()
 	if grpcClient == nil {
 		return cClient.ErrCoreGrpcClientNotConnected
@@ -201,7 +310,39 @@ func (mm *ManageInstance) DeleteInstanceOnSite(ctx context.Context, request *cor
 		return temporal.NewNonRetryableApplicationError(err.Error(), swe.ErrTypeInvalidRequest, err)
 	}
 
-	// Call Core gRPC API endpoint
+	// Delegate to the pluggable provisioner when one is registered.
+	if mm.provisioner != nil && mm.provisioner.Name() != "core-grpc" {
+		provisionerName := mm.provisioner.Name()
+		machineID := request.GetId().GetValue()
+
+		// Fire pre-machine-deprovision sync hook (allows providers to prepare cleanup).
+		if mm.hooks != nil {
+			if err := mm.hooks.FireSync(ctx, "compute", "pre-machine-deprovision", deprovisionHookPayload{
+				MachineID:   machineID,
+				Provisioner: provisionerName,
+			}); err != nil {
+				logger.Warn().Err(err).Str("provisioner", provisionerName).Msg("pre-machine-deprovision hook failed")
+				// Non-blocking: log but proceed — deprovisioning must not be blocked by hook failure.
+			}
+		}
+
+		logger.Info().Str("provisioner", provisionerName).Msg("delegating deprovision to external provisioner")
+		if err := mm.provisioner.Deprovision(ctx, machineID); err != nil {
+			logger.Warn().Err(err).Str("provisioner", provisionerName).Msg("external provisioner deprovision failed")
+			return swe.WrapErr(err)
+		}
+
+		// Fire post-machine-deprovision async hook (non-blocking cleanup signal).
+		if mm.hooks != nil {
+			mm.hooks.FireAsync(ctx, "compute", "post-machine-deprovision", deprovisionHookPayload{
+				MachineID:   machineID,
+				Provisioner: provisionerName,
+			})
+		}
+		return nil
+	}
+
+	// Call Core gRPC API endpoint (default path)
 	grpcClient := mm.coreGrpcAtomicClient.GetClient()
 	if grpcClient == nil {
 		return cClient.ErrCoreGrpcClientNotConnected
@@ -220,10 +361,40 @@ func (mm *ManageInstance) DeleteInstanceOnSite(ctx context.Context, request *cor
 	return nil
 }
 
-// NewManageInstance returns a new ManageInstance activity
+// NewManageInstance returns a new ManageInstance activity using the Core gRPC path.
 func NewManageInstance(coreGrpcAtomicClient *cClient.CoreGrpcAtomicClient) ManageInstance {
 	return ManageInstance{
 		coreGrpcAtomicClient: coreGrpcAtomicClient,
+	}
+}
+
+// NewManageInstanceWithProvisioner returns a ManageInstance activity that
+// delegates Provision/Deprovision to the given backend instead of Core gRPC
+// and fires lifecycle hooks via the given HookFirer.
+// Use this when deploying a single external provisioner (Metal3, Ironic, etc.).
+// For multi-backend deployments, prefer NewManageInstanceWithRegistry.
+func NewManageInstanceWithProvisioner(coreGrpcAtomicClient *cClient.CoreGrpcAtomicClient, prov mp.MachineProvisioner, hooks mp.HookFirer) ManageInstance {
+	r := mp.NewRegistry()
+	if prov != nil && prov.Name() != mp.BackendCoreGRPC {
+		r.Register(prov.Name(), prov)
+	}
+	return ManageInstance{
+		coreGrpcAtomicClient: coreGrpcAtomicClient,
+		provisioner:          prov,
+		registry:             r,
+		hooks:                hooks,
+	}
+}
+
+// NewManageInstanceWithRegistry returns a ManageInstance activity that selects
+// the provisioner backend per-machine using the nico.nvidia.com/provisioner
+// annotation from the machine's labels. CoreGRPCProvisioner is always the
+// fallback when no annotation is present or the named backend is unknown.
+func NewManageInstanceWithRegistry(coreGrpcAtomicClient *cClient.CoreGrpcAtomicClient, registry *mp.Registry, hooks mp.HookFirer) ManageInstance {
+	return ManageInstance{
+		coreGrpcAtomicClient: coreGrpcAtomicClient,
+		registry:             registry,
+		hooks:                hooks,
 	}
 }
 
