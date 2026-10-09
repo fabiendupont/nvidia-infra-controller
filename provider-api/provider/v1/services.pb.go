@@ -25,6 +25,7 @@ package providerv1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -36,6 +37,151 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
+
+// SwitchPlatform identifies the switch NOS.
+type SwitchPlatform int32
+
+const (
+	SwitchPlatform_PLATFORM_UNSPECIFIED SwitchPlatform = 0
+	SwitchPlatform_PLATFORM_NVOS        SwitchPlatform = 1 // NVIDIA Cumulus Linux / NV-OS
+	SwitchPlatform_PLATFORM_MLNX_OS     SwitchPlatform = 2 // Mellanox MLNX-OS (legacy)
+	SwitchPlatform_PLATFORM_CUMULUS     SwitchPlatform = 3 // Cumulus Linux (non-NVIDIA)
+	SwitchPlatform_PLATFORM_ARISTA_EOS  SwitchPlatform = 4
+	SwitchPlatform_PLATFORM_JUNOS       SwitchPlatform = 5
+)
+
+// Enum value maps for SwitchPlatform.
+var (
+	SwitchPlatform_name = map[int32]string{
+		0: "PLATFORM_UNSPECIFIED",
+		1: "PLATFORM_NVOS",
+		2: "PLATFORM_MLNX_OS",
+		3: "PLATFORM_CUMULUS",
+		4: "PLATFORM_ARISTA_EOS",
+		5: "PLATFORM_JUNOS",
+	}
+	SwitchPlatform_value = map[string]int32{
+		"PLATFORM_UNSPECIFIED": 0,
+		"PLATFORM_NVOS":        1,
+		"PLATFORM_MLNX_OS":     2,
+		"PLATFORM_CUMULUS":     3,
+		"PLATFORM_ARISTA_EOS":  4,
+		"PLATFORM_JUNOS":       5,
+	}
+)
+
+func (x SwitchPlatform) Enum() *SwitchPlatform {
+	p := new(SwitchPlatform)
+	*p = x
+	return p
+}
+
+func (x SwitchPlatform) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SwitchPlatform) Descriptor() protoreflect.EnumDescriptor {
+	return file_provider_v1_services_proto_enumTypes[0].Descriptor()
+}
+
+func (SwitchPlatform) Type() protoreflect.EnumType {
+	return &file_provider_v1_services_proto_enumTypes[0]
+}
+
+func (x SwitchPlatform) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use SwitchPlatform.Descriptor instead.
+func (SwitchPlatform) EnumDescriptor() ([]byte, []int) {
+	return file_provider_v1_services_proto_rawDescGZIP(), []int{0}
+}
+
+// SwitchState mirrors SwitchControllerState from NICo core
+// (crates/api-model/src/switch/mod.rs).  Sub-state details (e.g. configuring
+// sub-phase) are omitted; see NicoSwitch.labels["state_detail"] for the raw
+// JSON if needed.
+type SwitchState int32
+
+const (
+	SwitchState_SWITCH_STATE_UNSPECIFIED     SwitchState = 0
+	SwitchState_SWITCH_STATE_CREATED         SwitchState = 1
+	SwitchState_SWITCH_STATE_INITIALIZING    SwitchState = 2
+	SwitchState_SWITCH_STATE_CONFIGURING     SwitchState = 3
+	SwitchState_SWITCH_STATE_FETCH_INFO      SwitchState = 4
+	SwitchState_SWITCH_STATE_VALIDATING      SwitchState = 5
+	SwitchState_SWITCH_STATE_BOM_VALIDATING  SwitchState = 6
+	SwitchState_SWITCH_STATE_READY           SwitchState = 7
+	SwitchState_SWITCH_STATE_MAINTENANCE     SwitchState = 8
+	SwitchState_SWITCH_STATE_REPROVISIONING  SwitchState = 9
+	SwitchState_SWITCH_STATE_ROTATING_BMC    SwitchState = 10
+	SwitchState_SWITCH_STATE_ERROR           SwitchState = 11
+	SwitchState_SWITCH_STATE_DELETING        SwitchState = 12
+	SwitchState_SWITCH_STATE_DECOMMISSIONING SwitchState = 13
+)
+
+// Enum value maps for SwitchState.
+var (
+	SwitchState_name = map[int32]string{
+		0:  "SWITCH_STATE_UNSPECIFIED",
+		1:  "SWITCH_STATE_CREATED",
+		2:  "SWITCH_STATE_INITIALIZING",
+		3:  "SWITCH_STATE_CONFIGURING",
+		4:  "SWITCH_STATE_FETCH_INFO",
+		5:  "SWITCH_STATE_VALIDATING",
+		6:  "SWITCH_STATE_BOM_VALIDATING",
+		7:  "SWITCH_STATE_READY",
+		8:  "SWITCH_STATE_MAINTENANCE",
+		9:  "SWITCH_STATE_REPROVISIONING",
+		10: "SWITCH_STATE_ROTATING_BMC",
+		11: "SWITCH_STATE_ERROR",
+		12: "SWITCH_STATE_DELETING",
+		13: "SWITCH_STATE_DECOMMISSIONING",
+	}
+	SwitchState_value = map[string]int32{
+		"SWITCH_STATE_UNSPECIFIED":     0,
+		"SWITCH_STATE_CREATED":         1,
+		"SWITCH_STATE_INITIALIZING":    2,
+		"SWITCH_STATE_CONFIGURING":     3,
+		"SWITCH_STATE_FETCH_INFO":      4,
+		"SWITCH_STATE_VALIDATING":      5,
+		"SWITCH_STATE_BOM_VALIDATING":  6,
+		"SWITCH_STATE_READY":           7,
+		"SWITCH_STATE_MAINTENANCE":     8,
+		"SWITCH_STATE_REPROVISIONING":  9,
+		"SWITCH_STATE_ROTATING_BMC":    10,
+		"SWITCH_STATE_ERROR":           11,
+		"SWITCH_STATE_DELETING":        12,
+		"SWITCH_STATE_DECOMMISSIONING": 13,
+	}
+)
+
+func (x SwitchState) Enum() *SwitchState {
+	p := new(SwitchState)
+	*p = x
+	return p
+}
+
+func (x SwitchState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SwitchState) Descriptor() protoreflect.EnumDescriptor {
+	return file_provider_v1_services_proto_enumTypes[1].Descriptor()
+}
+
+func (SwitchState) Type() protoreflect.EnumType {
+	return &file_provider_v1_services_proto_enumTypes[1]
+}
+
+func (x SwitchState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use SwitchState.Descriptor instead.
+func (SwitchState) EnumDescriptor() ([]byte, []int) {
+	return file_provider_v1_services_proto_rawDescGZIP(), []int{1}
+}
 
 type GetVpcByIDRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -869,11 +1015,1462 @@ func (x *Machine) GetLabels() map[string]string {
 	return nil
 }
 
+type ListSwitchesRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// site_id filters results to a single site.  Required.
+	SiteId string `protobuf:"bytes,1,opt,name=site_id,json=siteId,proto3" json:"site_id,omitempty"`
+	// rack_id optionally narrows the list to one rack.
+	RackId string `protobuf:"bytes,2,opt,name=rack_id,json=rackId,proto3" json:"rack_id,omitempty"`
+	// include_non_ready includes switches that are not yet in the Ready state.
+	// Default false: only Ready switches are returned.
+	IncludeNonReady bool `protobuf:"varint,3,opt,name=include_non_ready,json=includeNonReady,proto3" json:"include_non_ready,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *ListSwitchesRequest) Reset() {
+	*x = ListSwitchesRequest{}
+	mi := &file_provider_v1_services_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSwitchesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSwitchesRequest) ProtoMessage() {}
+
+func (x *ListSwitchesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_provider_v1_services_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSwitchesRequest.ProtoReflect.Descriptor instead.
+func (*ListSwitchesRequest) Descriptor() ([]byte, []int) {
+	return file_provider_v1_services_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ListSwitchesRequest) GetSiteId() string {
+	if x != nil {
+		return x.SiteId
+	}
+	return ""
+}
+
+func (x *ListSwitchesRequest) GetRackId() string {
+	if x != nil {
+		return x.RackId
+	}
+	return ""
+}
+
+func (x *ListSwitchesRequest) GetIncludeNonReady() bool {
+	if x != nil {
+		return x.IncludeNonReady
+	}
+	return false
+}
+
+type ListSwitchesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Switches      []*NicoSwitch          `protobuf:"bytes,1,rep,name=switches,proto3" json:"switches,omitempty"`
+	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSwitchesResponse) Reset() {
+	*x = ListSwitchesResponse{}
+	mi := &file_provider_v1_services_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSwitchesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSwitchesResponse) ProtoMessage() {}
+
+func (x *ListSwitchesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_provider_v1_services_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSwitchesResponse.ProtoReflect.Descriptor instead.
+func (*ListSwitchesResponse) Descriptor() ([]byte, []int) {
+	return file_provider_v1_services_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *ListSwitchesResponse) GetSwitches() []*NicoSwitch {
+	if x != nil {
+		return x.Switches
+	}
+	return nil
+}
+
+func (x *ListSwitchesResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+type GetSwitchRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSwitchRequest) Reset() {
+	*x = GetSwitchRequest{}
+	mi := &file_provider_v1_services_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSwitchRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSwitchRequest) ProtoMessage() {}
+
+func (x *GetSwitchRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_provider_v1_services_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSwitchRequest.ProtoReflect.Descriptor instead.
+func (*GetSwitchRequest) Descriptor() ([]byte, []int) {
+	return file_provider_v1_services_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *GetSwitchRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type GetSwitchResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Switch        *NicoSwitch            `protobuf:"bytes,1,opt,name=switch,proto3" json:"switch,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSwitchResponse) Reset() {
+	*x = GetSwitchResponse{}
+	mi := &file_provider_v1_services_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSwitchResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSwitchResponse) ProtoMessage() {}
+
+func (x *GetSwitchResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_provider_v1_services_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSwitchResponse.ProtoReflect.Descriptor instead.
+func (*GetSwitchResponse) Descriptor() ([]byte, []int) {
+	return file_provider_v1_services_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *GetSwitchResponse) GetSwitch() *NicoSwitch {
+	if x != nil {
+		return x.Switch
+	}
+	return nil
+}
+
+// NicoSwitch is the provider-facing view of a switch managed by NICo.
+//
+// Storage status per field:
+//   - id, name, serial_number, site_id, rack_id, slot_number, tray_index,
+//     bmc_mac, labels, state: stored today.
+//   - bmc_ip: derived from BmcInfo, stored today.
+//   - manufacturer, model, firmware_version: stored as optional operator-
+//     supplied fields.
+//   - platform [gap]: NOS type inferred via NVUE probing but not persisted.
+//     Returns PLATFORM_UNSPECIFIED until added to the Switch DB model.
+//   - management_ip [gap]: NVOS management IP known to the DHCP subsystem
+//     but not surfaced on the Switch row.
+//   - credential_ref: opaque key the provider uses to retrieve NVOS credentials
+//     from NICo's secrets service.  Format: "<site_id>/<serial_number>/nvos".
+//     The actual secret value is never sent over this API.
+//   - ports [gap]: port-level inventory not currently persisted.
+type NicoSwitch struct {
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	Id           string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name         string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	SerialNumber string                 `protobuf:"bytes,3,opt,name=serial_number,json=serialNumber,proto3" json:"serial_number,omitempty"`
+	SiteId       string                 `protobuf:"bytes,4,opt,name=site_id,json=siteId,proto3" json:"site_id,omitempty"`
+	RackId       string                 `protobuf:"bytes,5,opt,name=rack_id,json=rackId,proto3" json:"rack_id,omitempty"`
+	SlotNumber   int32                  `protobuf:"varint,6,opt,name=slot_number,json=slotNumber,proto3" json:"slot_number,omitempty"`
+	TrayIndex    int32                  `protobuf:"varint,7,opt,name=tray_index,json=trayIndex,proto3" json:"tray_index,omitempty"`
+	BmcMac       string                 `protobuf:"bytes,8,opt,name=bmc_mac,json=bmcMac,proto3" json:"bmc_mac,omitempty"`
+	BmcIp        string                 `protobuf:"bytes,9,opt,name=bmc_ip,json=bmcIp,proto3" json:"bmc_ip,omitempty"`
+	// [gap] Not stored; returns PLATFORM_UNSPECIFIED until persisted in NICo.
+	Platform        SwitchPlatform `protobuf:"varint,10,opt,name=platform,proto3,enum=nico.provider.v1.SwitchPlatform" json:"platform,omitempty"`
+	Manufacturer    string         `protobuf:"bytes,11,opt,name=manufacturer,proto3" json:"manufacturer,omitempty"`
+	Model           string         `protobuf:"bytes,12,opt,name=model,proto3" json:"model,omitempty"`
+	FirmwareVersion string         `protobuf:"bytes,13,opt,name=firmware_version,json=firmwareVersion,proto3" json:"firmware_version,omitempty"`
+	// [gap] NVOS management IP; not yet stored on the Switch row.
+	ManagementIp string      `protobuf:"bytes,14,opt,name=management_ip,json=managementIp,proto3" json:"management_ip,omitempty"`
+	State        SwitchState `protobuf:"varint,15,opt,name=state,proto3,enum=nico.provider.v1.SwitchState" json:"state,omitempty"`
+	// credential_ref is the key to look up NVOS credentials in NICo's secrets
+	// service.  Format: "<site_id>/<serial_number>/nvos".
+	CredentialRef string            `protobuf:"bytes,16,opt,name=credential_ref,json=credentialRef,proto3" json:"credential_ref,omitempty"`
+	Labels        map[string]string `protobuf:"bytes,17,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// [gap] Port-level inventory is not currently persisted.  Returns empty list.
+	Ports         []*SwitchPort          `protobuf:"bytes,18,rep,name=ports,proto3" json:"ports,omitempty"`
+	Created       *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=created,proto3" json:"created,omitempty"`
+	Updated       *timestamppb.Timestamp `protobuf:"bytes,20,opt,name=updated,proto3" json:"updated,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NicoSwitch) Reset() {
+	*x = NicoSwitch{}
+	mi := &file_provider_v1_services_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NicoSwitch) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NicoSwitch) ProtoMessage() {}
+
+func (x *NicoSwitch) ProtoReflect() protoreflect.Message {
+	mi := &file_provider_v1_services_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NicoSwitch.ProtoReflect.Descriptor instead.
+func (*NicoSwitch) Descriptor() ([]byte, []int) {
+	return file_provider_v1_services_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *NicoSwitch) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *NicoSwitch) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *NicoSwitch) GetSerialNumber() string {
+	if x != nil {
+		return x.SerialNumber
+	}
+	return ""
+}
+
+func (x *NicoSwitch) GetSiteId() string {
+	if x != nil {
+		return x.SiteId
+	}
+	return ""
+}
+
+func (x *NicoSwitch) GetRackId() string {
+	if x != nil {
+		return x.RackId
+	}
+	return ""
+}
+
+func (x *NicoSwitch) GetSlotNumber() int32 {
+	if x != nil {
+		return x.SlotNumber
+	}
+	return 0
+}
+
+func (x *NicoSwitch) GetTrayIndex() int32 {
+	if x != nil {
+		return x.TrayIndex
+	}
+	return 0
+}
+
+func (x *NicoSwitch) GetBmcMac() string {
+	if x != nil {
+		return x.BmcMac
+	}
+	return ""
+}
+
+func (x *NicoSwitch) GetBmcIp() string {
+	if x != nil {
+		return x.BmcIp
+	}
+	return ""
+}
+
+func (x *NicoSwitch) GetPlatform() SwitchPlatform {
+	if x != nil {
+		return x.Platform
+	}
+	return SwitchPlatform_PLATFORM_UNSPECIFIED
+}
+
+func (x *NicoSwitch) GetManufacturer() string {
+	if x != nil {
+		return x.Manufacturer
+	}
+	return ""
+}
+
+func (x *NicoSwitch) GetModel() string {
+	if x != nil {
+		return x.Model
+	}
+	return ""
+}
+
+func (x *NicoSwitch) GetFirmwareVersion() string {
+	if x != nil {
+		return x.FirmwareVersion
+	}
+	return ""
+}
+
+func (x *NicoSwitch) GetManagementIp() string {
+	if x != nil {
+		return x.ManagementIp
+	}
+	return ""
+}
+
+func (x *NicoSwitch) GetState() SwitchState {
+	if x != nil {
+		return x.State
+	}
+	return SwitchState_SWITCH_STATE_UNSPECIFIED
+}
+
+func (x *NicoSwitch) GetCredentialRef() string {
+	if x != nil {
+		return x.CredentialRef
+	}
+	return ""
+}
+
+func (x *NicoSwitch) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
+}
+
+func (x *NicoSwitch) GetPorts() []*SwitchPort {
+	if x != nil {
+		return x.Ports
+	}
+	return nil
+}
+
+func (x *NicoSwitch) GetCreated() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Created
+	}
+	return nil
+}
+
+func (x *NicoSwitch) GetUpdated() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Updated
+	}
+	return nil
+}
+
+// SwitchPort is a physical or logical interface on the switch.
+// [gap]: Not currently persisted in NICo; server returns an empty list.
+type SwitchPort struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Name     string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`         // e.g. "swp1", "et-0/0/0"
+	Speed    string                 `protobuf:"bytes,2,opt,name=speed,proto3" json:"speed,omitempty"`       // e.g. "100G", "400G"
+	Breakout string                 `protobuf:"bytes,3,opt,name=breakout,proto3" json:"breakout,omitempty"` // e.g. "4x25G"
+	// connected_to is the expected cable peer, if recorded.
+	ConnectedTo   *CableEndpoint `protobuf:"bytes,4,opt,name=connected_to,json=connectedTo,proto3" json:"connected_to,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SwitchPort) Reset() {
+	*x = SwitchPort{}
+	mi := &file_provider_v1_services_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SwitchPort) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SwitchPort) ProtoMessage() {}
+
+func (x *SwitchPort) ProtoReflect() protoreflect.Message {
+	mi := &file_provider_v1_services_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SwitchPort.ProtoReflect.Descriptor instead.
+func (*SwitchPort) Descriptor() ([]byte, []int) {
+	return file_provider_v1_services_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *SwitchPort) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *SwitchPort) GetSpeed() string {
+	if x != nil {
+		return x.Speed
+	}
+	return ""
+}
+
+func (x *SwitchPort) GetBreakout() string {
+	if x != nil {
+		return x.Breakout
+	}
+	return ""
+}
+
+func (x *SwitchPort) GetConnectedTo() *CableEndpoint {
+	if x != nil {
+		return x.ConnectedTo
+	}
+	return nil
+}
+
+type GetSwitchRoutingConfigRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SwitchId      string                 `protobuf:"bytes,1,opt,name=switch_id,json=switchId,proto3" json:"switch_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSwitchRoutingConfigRequest) Reset() {
+	*x = GetSwitchRoutingConfigRequest{}
+	mi := &file_provider_v1_services_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSwitchRoutingConfigRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSwitchRoutingConfigRequest) ProtoMessage() {}
+
+func (x *GetSwitchRoutingConfigRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_provider_v1_services_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSwitchRoutingConfigRequest.ProtoReflect.Descriptor instead.
+func (*GetSwitchRoutingConfigRequest) Descriptor() ([]byte, []int) {
+	return file_provider_v1_services_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *GetSwitchRoutingConfigRequest) GetSwitchId() string {
+	if x != nil {
+		return x.SwitchId
+	}
+	return ""
+}
+
+// SwitchRoutingConfig holds the intended routing configuration for one switch.
+//
+// Storage status:
+//   - vrfs: partially derivable today from VPCs associated with this switch
+//     (via NicoNetworkingService + routing_profile).  Full VRF model (RD, RT)
+//     requires new NICo storage.
+//   - l2_vnis, l3_vnis: partially derivable from Subnet.network_virtualization_type.
+//   - bgp_peers [gap]: not stored; returns empty until persisted.
+//   - isis_interfaces [gap]: not stored; returns empty until persisted.
+//   - evpn [gap]: not stored; returns empty until persisted.
+type SwitchRoutingConfig struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	SwitchId string                 `protobuf:"bytes,1,opt,name=switch_id,json=switchId,proto3" json:"switch_id,omitempty"`
+	// vrfs: intended VRF table.  Derivable from VPCs whose routing_profile
+	// implies VRF creation.
+	Vrfs []*Vrf `protobuf:"bytes,2,rep,name=vrfs,proto3" json:"vrfs,omitempty"`
+	// bgp_peers: intended BGP neighbors per VRF.
+	// [gap] Not stored in NICo; returns empty until persisted.
+	BgpPeers []*BgpPeer `protobuf:"bytes,3,rep,name=bgp_peers,json=bgpPeers,proto3" json:"bgp_peers,omitempty"`
+	// isis_interfaces: intended IS-IS configuration per interface.
+	// [gap] Not stored in NICo; returns empty until persisted.
+	IsisInterfaces []*IsisInterface `protobuf:"bytes,4,rep,name=isis_interfaces,json=isisInterfaces,proto3" json:"isis_interfaces,omitempty"`
+	// evpn: intended EVPN fabric parameters.
+	// [gap] Not stored in NICo; returns empty/zero until persisted.
+	Evpn *EvpnConfig `protobuf:"bytes,5,opt,name=evpn,proto3" json:"evpn,omitempty"`
+	// l2_vnis: intended L2 VNI table (VLAN ↔ VNI mappings).
+	// Partially derivable from Subnet.network_virtualization_type.
+	L2Vnis []*L2Vni `protobuf:"bytes,6,rep,name=l2_vnis,json=l2Vnis,proto3" json:"l2_vnis,omitempty"`
+	// l3_vnis: intended L3 VNI table (VRF ↔ VNI mappings).
+	// Partially derivable from VPC.routing_profile.
+	L3Vnis        []*L3Vni `protobuf:"bytes,7,rep,name=l3_vnis,json=l3Vnis,proto3" json:"l3_vnis,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SwitchRoutingConfig) Reset() {
+	*x = SwitchRoutingConfig{}
+	mi := &file_provider_v1_services_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SwitchRoutingConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SwitchRoutingConfig) ProtoMessage() {}
+
+func (x *SwitchRoutingConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_provider_v1_services_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SwitchRoutingConfig.ProtoReflect.Descriptor instead.
+func (*SwitchRoutingConfig) Descriptor() ([]byte, []int) {
+	return file_provider_v1_services_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *SwitchRoutingConfig) GetSwitchId() string {
+	if x != nil {
+		return x.SwitchId
+	}
+	return ""
+}
+
+func (x *SwitchRoutingConfig) GetVrfs() []*Vrf {
+	if x != nil {
+		return x.Vrfs
+	}
+	return nil
+}
+
+func (x *SwitchRoutingConfig) GetBgpPeers() []*BgpPeer {
+	if x != nil {
+		return x.BgpPeers
+	}
+	return nil
+}
+
+func (x *SwitchRoutingConfig) GetIsisInterfaces() []*IsisInterface {
+	if x != nil {
+		return x.IsisInterfaces
+	}
+	return nil
+}
+
+func (x *SwitchRoutingConfig) GetEvpn() *EvpnConfig {
+	if x != nil {
+		return x.Evpn
+	}
+	return nil
+}
+
+func (x *SwitchRoutingConfig) GetL2Vnis() []*L2Vni {
+	if x != nil {
+		return x.L2Vnis
+	}
+	return nil
+}
+
+func (x *SwitchRoutingConfig) GetL3Vnis() []*L3Vni {
+	if x != nil {
+		return x.L3Vnis
+	}
+	return nil
+}
+
+type Vrf struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Name               string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	RouteDistinguisher string                 `protobuf:"bytes,2,opt,name=route_distinguisher,json=routeDistinguisher,proto3" json:"route_distinguisher,omitempty"` // e.g. "65100:10"
+	ImportRouteTargets []string               `protobuf:"bytes,3,rep,name=import_route_targets,json=importRouteTargets,proto3" json:"import_route_targets,omitempty"`
+	ExportRouteTargets []string               `protobuf:"bytes,4,rep,name=export_route_targets,json=exportRouteTargets,proto3" json:"export_route_targets,omitempty"`
+	L3Vni              uint32                 `protobuf:"varint,5,opt,name=l3_vni,json=l3Vni,proto3" json:"l3_vni,omitempty"` // 0 if no L3 VNI assigned
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *Vrf) Reset() {
+	*x = Vrf{}
+	mi := &file_provider_v1_services_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Vrf) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Vrf) ProtoMessage() {}
+
+func (x *Vrf) ProtoReflect() protoreflect.Message {
+	mi := &file_provider_v1_services_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Vrf.ProtoReflect.Descriptor instead.
+func (*Vrf) Descriptor() ([]byte, []int) {
+	return file_provider_v1_services_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *Vrf) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Vrf) GetRouteDistinguisher() string {
+	if x != nil {
+		return x.RouteDistinguisher
+	}
+	return ""
+}
+
+func (x *Vrf) GetImportRouteTargets() []string {
+	if x != nil {
+		return x.ImportRouteTargets
+	}
+	return nil
+}
+
+func (x *Vrf) GetExportRouteTargets() []string {
+	if x != nil {
+		return x.ExportRouteTargets
+	}
+	return nil
+}
+
+func (x *Vrf) GetL3Vni() uint32 {
+	if x != nil {
+		return x.L3Vni
+	}
+	return 0
+}
+
+type BgpPeer struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	PeerIp          string                 `protobuf:"bytes,1,opt,name=peer_ip,json=peerIp,proto3" json:"peer_ip,omitempty"` // empty for unnumbered peers
+	PeerAsn         uint32                 `protobuf:"varint,2,opt,name=peer_asn,json=peerAsn,proto3" json:"peer_asn,omitempty"`
+	Vrf             string                 `protobuf:"bytes,3,opt,name=vrf,proto3" json:"vrf,omitempty"` // VRF name; "default" for the global VRF
+	PeerGroup       string                 `protobuf:"bytes,4,opt,name=peer_group,json=peerGroup,proto3" json:"peer_group,omitempty"`
+	Ttl             uint32                 `protobuf:"varint,5,opt,name=ttl,proto3" json:"ttl,omitempty"` // multihop TTL; 0 means directly connected
+	SourceInterface string                 `protobuf:"bytes,6,opt,name=source_interface,json=sourceInterface,proto3" json:"source_interface,omitempty"`
+	RouteRole       string                 `protobuf:"bytes,7,opt,name=route_role,json=routeRole,proto3" json:"route_role,omitempty"`        // e.g. "spine", "leaf", "border"
+	EvpnEnabled     bool                   `protobuf:"varint,8,opt,name=evpn_enabled,json=evpnEnabled,proto3" json:"evpn_enabled,omitempty"` // whether L2VPN EVPN address family is active
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *BgpPeer) Reset() {
+	*x = BgpPeer{}
+	mi := &file_provider_v1_services_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BgpPeer) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BgpPeer) ProtoMessage() {}
+
+func (x *BgpPeer) ProtoReflect() protoreflect.Message {
+	mi := &file_provider_v1_services_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BgpPeer.ProtoReflect.Descriptor instead.
+func (*BgpPeer) Descriptor() ([]byte, []int) {
+	return file_provider_v1_services_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *BgpPeer) GetPeerIp() string {
+	if x != nil {
+		return x.PeerIp
+	}
+	return ""
+}
+
+func (x *BgpPeer) GetPeerAsn() uint32 {
+	if x != nil {
+		return x.PeerAsn
+	}
+	return 0
+}
+
+func (x *BgpPeer) GetVrf() string {
+	if x != nil {
+		return x.Vrf
+	}
+	return ""
+}
+
+func (x *BgpPeer) GetPeerGroup() string {
+	if x != nil {
+		return x.PeerGroup
+	}
+	return ""
+}
+
+func (x *BgpPeer) GetTtl() uint32 {
+	if x != nil {
+		return x.Ttl
+	}
+	return 0
+}
+
+func (x *BgpPeer) GetSourceInterface() string {
+	if x != nil {
+		return x.SourceInterface
+	}
+	return ""
+}
+
+func (x *BgpPeer) GetRouteRole() string {
+	if x != nil {
+		return x.RouteRole
+	}
+	return ""
+}
+
+func (x *BgpPeer) GetEvpnEnabled() bool {
+	if x != nil {
+		return x.EvpnEnabled
+	}
+	return false
+}
+
+type IsisInterface struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	InterfaceName string                 `protobuf:"bytes,1,opt,name=interface_name,json=interfaceName,proto3" json:"interface_name,omitempty"` // e.g. "swp1"
+	Metric        uint32                 `protobuf:"varint,2,opt,name=metric,proto3" json:"metric,omitempty"`
+	CircuitType   string                 `protobuf:"bytes,3,opt,name=circuit_type,json=circuitType,proto3" json:"circuit_type,omitempty"` // "level-1" | "level-2" | "level-1-2"
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IsisInterface) Reset() {
+	*x = IsisInterface{}
+	mi := &file_provider_v1_services_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IsisInterface) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IsisInterface) ProtoMessage() {}
+
+func (x *IsisInterface) ProtoReflect() protoreflect.Message {
+	mi := &file_provider_v1_services_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IsisInterface.ProtoReflect.Descriptor instead.
+func (*IsisInterface) Descriptor() ([]byte, []int) {
+	return file_provider_v1_services_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *IsisInterface) GetInterfaceName() string {
+	if x != nil {
+		return x.InterfaceName
+	}
+	return ""
+}
+
+func (x *IsisInterface) GetMetric() uint32 {
+	if x != nil {
+		return x.Metric
+	}
+	return 0
+}
+
+func (x *IsisInterface) GetCircuitType() string {
+	if x != nil {
+		return x.CircuitType
+	}
+	return ""
+}
+
+type EvpnConfig struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// esi_base_mac: base MAC used to derive per-port ESI values.
+	// [gap] Not stored in NICo.
+	EsiBaseMac string `protobuf:"bytes,1,opt,name=esi_base_mac,json=esiBaseMac,proto3" json:"esi_base_mac,omitempty"`
+	// fabric_mac: anycast gateway MAC for this switch.
+	// [gap] Not stored in NICo.
+	FabricMac string `protobuf:"bytes,2,opt,name=fabric_mac,json=fabricMac,proto3" json:"fabric_mac,omitempty"`
+	// df_preference: Designated Forwarder election preference (0–65535).
+	// [gap] Not stored in NICo.
+	DfPreference  uint32 `protobuf:"varint,3,opt,name=df_preference,json=dfPreference,proto3" json:"df_preference,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EvpnConfig) Reset() {
+	*x = EvpnConfig{}
+	mi := &file_provider_v1_services_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EvpnConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EvpnConfig) ProtoMessage() {}
+
+func (x *EvpnConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_provider_v1_services_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EvpnConfig.ProtoReflect.Descriptor instead.
+func (*EvpnConfig) Descriptor() ([]byte, []int) {
+	return file_provider_v1_services_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *EvpnConfig) GetEsiBaseMac() string {
+	if x != nil {
+		return x.EsiBaseMac
+	}
+	return ""
+}
+
+func (x *EvpnConfig) GetFabricMac() string {
+	if x != nil {
+		return x.FabricMac
+	}
+	return ""
+}
+
+func (x *EvpnConfig) GetDfPreference() uint32 {
+	if x != nil {
+		return x.DfPreference
+	}
+	return 0
+}
+
+type L2Vni struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Vni           uint32                 `protobuf:"varint,1,opt,name=vni,proto3" json:"vni,omitempty"`
+	Vlan          uint32                 `protobuf:"varint,2,opt,name=vlan,proto3" json:"vlan,omitempty"`
+	RouteTargets  []string               `protobuf:"bytes,3,rep,name=route_targets,json=routeTargets,proto3" json:"route_targets,omitempty"`
+	Vrf           string                 `protobuf:"bytes,4,opt,name=vrf,proto3" json:"vrf,omitempty"` // VRF this VNI's SVI belongs to
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *L2Vni) Reset() {
+	*x = L2Vni{}
+	mi := &file_provider_v1_services_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *L2Vni) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*L2Vni) ProtoMessage() {}
+
+func (x *L2Vni) ProtoReflect() protoreflect.Message {
+	mi := &file_provider_v1_services_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use L2Vni.ProtoReflect.Descriptor instead.
+func (*L2Vni) Descriptor() ([]byte, []int) {
+	return file_provider_v1_services_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *L2Vni) GetVni() uint32 {
+	if x != nil {
+		return x.Vni
+	}
+	return 0
+}
+
+func (x *L2Vni) GetVlan() uint32 {
+	if x != nil {
+		return x.Vlan
+	}
+	return 0
+}
+
+func (x *L2Vni) GetRouteTargets() []string {
+	if x != nil {
+		return x.RouteTargets
+	}
+	return nil
+}
+
+func (x *L2Vni) GetVrf() string {
+	if x != nil {
+		return x.Vrf
+	}
+	return ""
+}
+
+type L3Vni struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Vni           uint32                 `protobuf:"varint,1,opt,name=vni,proto3" json:"vni,omitempty"`
+	Vrf           string                 `protobuf:"bytes,2,opt,name=vrf,proto3" json:"vrf,omitempty"`
+	RouteTargets  []string               `protobuf:"bytes,3,rep,name=route_targets,json=routeTargets,proto3" json:"route_targets,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *L3Vni) Reset() {
+	*x = L3Vni{}
+	mi := &file_provider_v1_services_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *L3Vni) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*L3Vni) ProtoMessage() {}
+
+func (x *L3Vni) ProtoReflect() protoreflect.Message {
+	mi := &file_provider_v1_services_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use L3Vni.ProtoReflect.Descriptor instead.
+func (*L3Vni) Descriptor() ([]byte, []int) {
+	return file_provider_v1_services_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *L3Vni) GetVni() uint32 {
+	if x != nil {
+		return x.Vni
+	}
+	return 0
+}
+
+func (x *L3Vni) GetVrf() string {
+	if x != nil {
+		return x.Vrf
+	}
+	return ""
+}
+
+func (x *L3Vni) GetRouteTargets() []string {
+	if x != nil {
+		return x.RouteTargets
+	}
+	return nil
+}
+
+type ListSwitchNeighborsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SwitchId      string                 `protobuf:"bytes,1,opt,name=switch_id,json=switchId,proto3" json:"switch_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSwitchNeighborsRequest) Reset() {
+	*x = ListSwitchNeighborsRequest{}
+	mi := &file_provider_v1_services_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSwitchNeighborsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSwitchNeighborsRequest) ProtoMessage() {}
+
+func (x *ListSwitchNeighborsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_provider_v1_services_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSwitchNeighborsRequest.ProtoReflect.Descriptor instead.
+func (*ListSwitchNeighborsRequest) Descriptor() ([]byte, []int) {
+	return file_provider_v1_services_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *ListSwitchNeighborsRequest) GetSwitchId() string {
+	if x != nil {
+		return x.SwitchId
+	}
+	return ""
+}
+
+type ListSwitchNeighborsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// expected_neighbors: topology-model view from NICo's cabling records.
+	ExpectedNeighbors []*CableLink `protobuf:"bytes,1,rep,name=expected_neighbors,json=expectedNeighbors,proto3" json:"expected_neighbors,omitempty"`
+	// observed_neighbors: last provider-reported LLDP view; empty if no report
+	// has been submitted yet.
+	ObservedNeighbors []*CableLink `protobuf:"bytes,2,rep,name=observed_neighbors,json=observedNeighbors,proto3" json:"observed_neighbors,omitempty"`
+	// last_observed_at: timestamp of the most recent ReportSwitchNeighbors call.
+	LastObservedAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=last_observed_at,json=lastObservedAt,proto3" json:"last_observed_at,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *ListSwitchNeighborsResponse) Reset() {
+	*x = ListSwitchNeighborsResponse{}
+	mi := &file_provider_v1_services_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSwitchNeighborsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSwitchNeighborsResponse) ProtoMessage() {}
+
+func (x *ListSwitchNeighborsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_provider_v1_services_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSwitchNeighborsResponse.ProtoReflect.Descriptor instead.
+func (*ListSwitchNeighborsResponse) Descriptor() ([]byte, []int) {
+	return file_provider_v1_services_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *ListSwitchNeighborsResponse) GetExpectedNeighbors() []*CableLink {
+	if x != nil {
+		return x.ExpectedNeighbors
+	}
+	return nil
+}
+
+func (x *ListSwitchNeighborsResponse) GetObservedNeighbors() []*CableLink {
+	if x != nil {
+		return x.ObservedNeighbors
+	}
+	return nil
+}
+
+func (x *ListSwitchNeighborsResponse) GetLastObservedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LastObservedAt
+	}
+	return nil
+}
+
+// CableLink describes one cable between two ports (switch↔switch or
+// switch↔compute interface).
+type CableLink struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Local  *CableEndpoint         `protobuf:"bytes,1,opt,name=local,proto3" json:"local,omitempty"`
+	Remote *CableEndpoint         `protobuf:"bytes,2,opt,name=remote,proto3" json:"remote,omitempty"`
+	// status: set by NICo after comparing expected vs observed neighbors.
+	// "ok" | "missing" | "unexpected" | "unknown"
+	Status        string `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CableLink) Reset() {
+	*x = CableLink{}
+	mi := &file_provider_v1_services_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CableLink) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CableLink) ProtoMessage() {}
+
+func (x *CableLink) ProtoReflect() protoreflect.Message {
+	mi := &file_provider_v1_services_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CableLink.ProtoReflect.Descriptor instead.
+func (*CableLink) Descriptor() ([]byte, []int) {
+	return file_provider_v1_services_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *CableLink) GetLocal() *CableEndpoint {
+	if x != nil {
+		return x.Local
+	}
+	return nil
+}
+
+func (x *CableLink) GetRemote() *CableEndpoint {
+	if x != nil {
+		return x.Remote
+	}
+	return nil
+}
+
+func (x *CableLink) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+// CableEndpoint identifies one end of a cable.
+type CableEndpoint struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DeviceId      string                 `protobuf:"bytes,1,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`       // NICo Switch or Machine UUID
+	DeviceType    string                 `protobuf:"bytes,2,opt,name=device_type,json=deviceType,proto3" json:"device_type,omitempty"` // "switch" | "machine"
+	PortName      string                 `protobuf:"bytes,3,opt,name=port_name,json=portName,proto3" json:"port_name,omitempty"`       // e.g. "swp1", "eth0"
+	ChassisId     string                 `protobuf:"bytes,4,opt,name=chassis_id,json=chassisId,proto3" json:"chassis_id,omitempty"`    // LLDP chassis-id TLV (MAC or string)
+	PortId        string                 `protobuf:"bytes,5,opt,name=port_id,json=portId,proto3" json:"port_id,omitempty"`             // LLDP port-id TLV
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CableEndpoint) Reset() {
+	*x = CableEndpoint{}
+	mi := &file_provider_v1_services_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CableEndpoint) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CableEndpoint) ProtoMessage() {}
+
+func (x *CableEndpoint) ProtoReflect() protoreflect.Message {
+	mi := &file_provider_v1_services_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CableEndpoint.ProtoReflect.Descriptor instead.
+func (*CableEndpoint) Descriptor() ([]byte, []int) {
+	return file_provider_v1_services_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *CableEndpoint) GetDeviceId() string {
+	if x != nil {
+		return x.DeviceId
+	}
+	return ""
+}
+
+func (x *CableEndpoint) GetDeviceType() string {
+	if x != nil {
+		return x.DeviceType
+	}
+	return ""
+}
+
+func (x *CableEndpoint) GetPortName() string {
+	if x != nil {
+		return x.PortName
+	}
+	return ""
+}
+
+func (x *CableEndpoint) GetChassisId() string {
+	if x != nil {
+		return x.ChassisId
+	}
+	return ""
+}
+
+func (x *CableEndpoint) GetPortId() string {
+	if x != nil {
+		return x.PortId
+	}
+	return ""
+}
+
+// ReportSwitchNeighborsRequest carries observed LLDP neighbors from a provider
+// back to NICo.  NICo stores these, diffs against expected topology, and fires
+// a "switch/post-report-neighbors" async hook with the diff result.
+//
+// Rationale: the provider sidecar is the only component with network access to
+// the switches; NICo core cannot SSH/LLDP-poll them directly.  The write-back
+// closes the cable-validation loop without requiring NICo to implement switch
+// access itself.
+type ReportSwitchNeighborsRequest struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	SwitchId          string                 `protobuf:"bytes,1,opt,name=switch_id,json=switchId,proto3" json:"switch_id,omitempty"`
+	ObservedNeighbors []*CableLink           `protobuf:"bytes,2,rep,name=observed_neighbors,json=observedNeighbors,proto3" json:"observed_neighbors,omitempty"`
+	ObservedAt        *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *ReportSwitchNeighborsRequest) Reset() {
+	*x = ReportSwitchNeighborsRequest{}
+	mi := &file_provider_v1_services_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReportSwitchNeighborsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReportSwitchNeighborsRequest) ProtoMessage() {}
+
+func (x *ReportSwitchNeighborsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_provider_v1_services_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReportSwitchNeighborsRequest.ProtoReflect.Descriptor instead.
+func (*ReportSwitchNeighborsRequest) Descriptor() ([]byte, []int) {
+	return file_provider_v1_services_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *ReportSwitchNeighborsRequest) GetSwitchId() string {
+	if x != nil {
+		return x.SwitchId
+	}
+	return ""
+}
+
+func (x *ReportSwitchNeighborsRequest) GetObservedNeighbors() []*CableLink {
+	if x != nil {
+		return x.ObservedNeighbors
+	}
+	return nil
+}
+
+func (x *ReportSwitchNeighborsRequest) GetObservedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ObservedAt
+	}
+	return nil
+}
+
+type ReportSwitchNeighborsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// diff_summary: human-readable account of what matched and what diverged.
+	DiffSummary string `protobuf:"bytes,1,opt,name=diff_summary,json=diffSummary,proto3" json:"diff_summary,omitempty"`
+	// mismatch_count: number of ports where observed ≠ expected.
+	MismatchCount int32 `protobuf:"varint,2,opt,name=mismatch_count,json=mismatchCount,proto3" json:"mismatch_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReportSwitchNeighborsResponse) Reset() {
+	*x = ReportSwitchNeighborsResponse{}
+	mi := &file_provider_v1_services_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReportSwitchNeighborsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReportSwitchNeighborsResponse) ProtoMessage() {}
+
+func (x *ReportSwitchNeighborsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_provider_v1_services_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReportSwitchNeighborsResponse.ProtoReflect.Descriptor instead.
+func (*ReportSwitchNeighborsResponse) Descriptor() ([]byte, []int) {
+	return file_provider_v1_services_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *ReportSwitchNeighborsResponse) GetDiffSummary() string {
+	if x != nil {
+		return x.DiffSummary
+	}
+	return ""
+}
+
+func (x *ReportSwitchNeighborsResponse) GetMismatchCount() int32 {
+	if x != nil {
+		return x.MismatchCount
+	}
+	return 0
+}
+
 var File_provider_v1_services_proto protoreflect.FileDescriptor
 
 const file_provider_v1_services_proto_rawDesc = "" +
 	"\n" +
-	"\x1aprovider/v1/services.proto\x12\x10nico.provider.v1\"#\n" +
+	"\x1aprovider/v1/services.proto\x12\x10nico.provider.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"#\n" +
 	"\x11GetVpcByIDRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"6\n" +
 	"\vVpcResponse\x12'\n" +
@@ -951,7 +2548,148 @@ const file_provider_v1_services_proto_rawDesc = "" +
 	"\x06labels\x18\b \x03(\v2%.nico.provider.v1.Machine.LabelsEntryR\x06labels\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x012\xc2\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"s\n" +
+	"\x13ListSwitchesRequest\x12\x17\n" +
+	"\asite_id\x18\x01 \x01(\tR\x06siteId\x12\x17\n" +
+	"\arack_id\x18\x02 \x01(\tR\x06rackId\x12*\n" +
+	"\x11include_non_ready\x18\x03 \x01(\bR\x0fincludeNonReady\"f\n" +
+	"\x14ListSwitchesResponse\x128\n" +
+	"\bswitches\x18\x01 \x03(\v2\x1c.nico.provider.v1.NicoSwitchR\bswitches\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"\"\n" +
+	"\x10GetSwitchRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"I\n" +
+	"\x11GetSwitchResponse\x124\n" +
+	"\x06switch\x18\x01 \x01(\v2\x1c.nico.provider.v1.NicoSwitchR\x06switch\"\xb8\x06\n" +
+	"\n" +
+	"NicoSwitch\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12#\n" +
+	"\rserial_number\x18\x03 \x01(\tR\fserialNumber\x12\x17\n" +
+	"\asite_id\x18\x04 \x01(\tR\x06siteId\x12\x17\n" +
+	"\arack_id\x18\x05 \x01(\tR\x06rackId\x12\x1f\n" +
+	"\vslot_number\x18\x06 \x01(\x05R\n" +
+	"slotNumber\x12\x1d\n" +
+	"\n" +
+	"tray_index\x18\a \x01(\x05R\ttrayIndex\x12\x17\n" +
+	"\abmc_mac\x18\b \x01(\tR\x06bmcMac\x12\x15\n" +
+	"\x06bmc_ip\x18\t \x01(\tR\x05bmcIp\x12<\n" +
+	"\bplatform\x18\n" +
+	" \x01(\x0e2 .nico.provider.v1.SwitchPlatformR\bplatform\x12\"\n" +
+	"\fmanufacturer\x18\v \x01(\tR\fmanufacturer\x12\x14\n" +
+	"\x05model\x18\f \x01(\tR\x05model\x12)\n" +
+	"\x10firmware_version\x18\r \x01(\tR\x0ffirmwareVersion\x12#\n" +
+	"\rmanagement_ip\x18\x0e \x01(\tR\fmanagementIp\x123\n" +
+	"\x05state\x18\x0f \x01(\x0e2\x1d.nico.provider.v1.SwitchStateR\x05state\x12%\n" +
+	"\x0ecredential_ref\x18\x10 \x01(\tR\rcredentialRef\x12@\n" +
+	"\x06labels\x18\x11 \x03(\v2(.nico.provider.v1.NicoSwitch.LabelsEntryR\x06labels\x122\n" +
+	"\x05ports\x18\x12 \x03(\v2\x1c.nico.provider.v1.SwitchPortR\x05ports\x124\n" +
+	"\acreated\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampR\acreated\x124\n" +
+	"\aupdated\x18\x14 \x01(\v2\x1a.google.protobuf.TimestampR\aupdated\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x96\x01\n" +
+	"\n" +
+	"SwitchPort\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05speed\x18\x02 \x01(\tR\x05speed\x12\x1a\n" +
+	"\bbreakout\x18\x03 \x01(\tR\bbreakout\x12B\n" +
+	"\fconnected_to\x18\x04 \x01(\v2\x1f.nico.provider.v1.CableEndpointR\vconnectedTo\"<\n" +
+	"\x1dGetSwitchRoutingConfigRequest\x12\x1b\n" +
+	"\tswitch_id\x18\x01 \x01(\tR\bswitchId\"\xf5\x02\n" +
+	"\x13SwitchRoutingConfig\x12\x1b\n" +
+	"\tswitch_id\x18\x01 \x01(\tR\bswitchId\x12)\n" +
+	"\x04vrfs\x18\x02 \x03(\v2\x15.nico.provider.v1.VrfR\x04vrfs\x126\n" +
+	"\tbgp_peers\x18\x03 \x03(\v2\x19.nico.provider.v1.BgpPeerR\bbgpPeers\x12H\n" +
+	"\x0fisis_interfaces\x18\x04 \x03(\v2\x1f.nico.provider.v1.IsisInterfaceR\x0eisisInterfaces\x120\n" +
+	"\x04evpn\x18\x05 \x01(\v2\x1c.nico.provider.v1.EvpnConfigR\x04evpn\x120\n" +
+	"\al2_vnis\x18\x06 \x03(\v2\x17.nico.provider.v1.L2VniR\x06l2Vnis\x120\n" +
+	"\al3_vnis\x18\a \x03(\v2\x17.nico.provider.v1.L3VniR\x06l3Vnis\"\xc5\x01\n" +
+	"\x03Vrf\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12/\n" +
+	"\x13route_distinguisher\x18\x02 \x01(\tR\x12routeDistinguisher\x120\n" +
+	"\x14import_route_targets\x18\x03 \x03(\tR\x12importRouteTargets\x120\n" +
+	"\x14export_route_targets\x18\x04 \x03(\tR\x12exportRouteTargets\x12\x15\n" +
+	"\x06l3_vni\x18\x05 \x01(\rR\x05l3Vni\"\xed\x01\n" +
+	"\aBgpPeer\x12\x17\n" +
+	"\apeer_ip\x18\x01 \x01(\tR\x06peerIp\x12\x19\n" +
+	"\bpeer_asn\x18\x02 \x01(\rR\apeerAsn\x12\x10\n" +
+	"\x03vrf\x18\x03 \x01(\tR\x03vrf\x12\x1d\n" +
+	"\n" +
+	"peer_group\x18\x04 \x01(\tR\tpeerGroup\x12\x10\n" +
+	"\x03ttl\x18\x05 \x01(\rR\x03ttl\x12)\n" +
+	"\x10source_interface\x18\x06 \x01(\tR\x0fsourceInterface\x12\x1d\n" +
+	"\n" +
+	"route_role\x18\a \x01(\tR\trouteRole\x12!\n" +
+	"\fevpn_enabled\x18\b \x01(\bR\vevpnEnabled\"q\n" +
+	"\rIsisInterface\x12%\n" +
+	"\x0einterface_name\x18\x01 \x01(\tR\rinterfaceName\x12\x16\n" +
+	"\x06metric\x18\x02 \x01(\rR\x06metric\x12!\n" +
+	"\fcircuit_type\x18\x03 \x01(\tR\vcircuitType\"r\n" +
+	"\n" +
+	"EvpnConfig\x12 \n" +
+	"\fesi_base_mac\x18\x01 \x01(\tR\n" +
+	"esiBaseMac\x12\x1d\n" +
+	"\n" +
+	"fabric_mac\x18\x02 \x01(\tR\tfabricMac\x12#\n" +
+	"\rdf_preference\x18\x03 \x01(\rR\fdfPreference\"d\n" +
+	"\x05L2Vni\x12\x10\n" +
+	"\x03vni\x18\x01 \x01(\rR\x03vni\x12\x12\n" +
+	"\x04vlan\x18\x02 \x01(\rR\x04vlan\x12#\n" +
+	"\rroute_targets\x18\x03 \x03(\tR\frouteTargets\x12\x10\n" +
+	"\x03vrf\x18\x04 \x01(\tR\x03vrf\"P\n" +
+	"\x05L3Vni\x12\x10\n" +
+	"\x03vni\x18\x01 \x01(\rR\x03vni\x12\x10\n" +
+	"\x03vrf\x18\x02 \x01(\tR\x03vrf\x12#\n" +
+	"\rroute_targets\x18\x03 \x03(\tR\frouteTargets\"9\n" +
+	"\x1aListSwitchNeighborsRequest\x12\x1b\n" +
+	"\tswitch_id\x18\x01 \x01(\tR\bswitchId\"\xfb\x01\n" +
+	"\x1bListSwitchNeighborsResponse\x12J\n" +
+	"\x12expected_neighbors\x18\x01 \x03(\v2\x1b.nico.provider.v1.CableLinkR\x11expectedNeighbors\x12J\n" +
+	"\x12observed_neighbors\x18\x02 \x03(\v2\x1b.nico.provider.v1.CableLinkR\x11observedNeighbors\x12D\n" +
+	"\x10last_observed_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x0elastObservedAt\"\x93\x01\n" +
+	"\tCableLink\x125\n" +
+	"\x05local\x18\x01 \x01(\v2\x1f.nico.provider.v1.CableEndpointR\x05local\x127\n" +
+	"\x06remote\x18\x02 \x01(\v2\x1f.nico.provider.v1.CableEndpointR\x06remote\x12\x16\n" +
+	"\x06status\x18\x03 \x01(\tR\x06status\"\xa2\x01\n" +
+	"\rCableEndpoint\x12\x1b\n" +
+	"\tdevice_id\x18\x01 \x01(\tR\bdeviceId\x12\x1f\n" +
+	"\vdevice_type\x18\x02 \x01(\tR\n" +
+	"deviceType\x12\x1b\n" +
+	"\tport_name\x18\x03 \x01(\tR\bportName\x12\x1d\n" +
+	"\n" +
+	"chassis_id\x18\x04 \x01(\tR\tchassisId\x12\x17\n" +
+	"\aport_id\x18\x05 \x01(\tR\x06portId\"\xc4\x01\n" +
+	"\x1cReportSwitchNeighborsRequest\x12\x1b\n" +
+	"\tswitch_id\x18\x01 \x01(\tR\bswitchId\x12J\n" +
+	"\x12observed_neighbors\x18\x02 \x03(\v2\x1b.nico.provider.v1.CableLinkR\x11observedNeighbors\x12;\n" +
+	"\vobserved_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"observedAt\"i\n" +
+	"\x1dReportSwitchNeighborsResponse\x12!\n" +
+	"\fdiff_summary\x18\x01 \x01(\tR\vdiffSummary\x12%\n" +
+	"\x0emismatch_count\x18\x02 \x01(\x05R\rmismatchCount*\x96\x01\n" +
+	"\x0eSwitchPlatform\x12\x18\n" +
+	"\x14PLATFORM_UNSPECIFIED\x10\x00\x12\x11\n" +
+	"\rPLATFORM_NVOS\x10\x01\x12\x14\n" +
+	"\x10PLATFORM_MLNX_OS\x10\x02\x12\x14\n" +
+	"\x10PLATFORM_CUMULUS\x10\x03\x12\x17\n" +
+	"\x13PLATFORM_ARISTA_EOS\x10\x04\x12\x12\n" +
+	"\x0ePLATFORM_JUNOS\x10\x05*\xa8\x03\n" +
+	"\vSwitchState\x12\x1c\n" +
+	"\x18SWITCH_STATE_UNSPECIFIED\x10\x00\x12\x18\n" +
+	"\x14SWITCH_STATE_CREATED\x10\x01\x12\x1d\n" +
+	"\x19SWITCH_STATE_INITIALIZING\x10\x02\x12\x1c\n" +
+	"\x18SWITCH_STATE_CONFIGURING\x10\x03\x12\x1b\n" +
+	"\x17SWITCH_STATE_FETCH_INFO\x10\x04\x12\x1b\n" +
+	"\x17SWITCH_STATE_VALIDATING\x10\x05\x12\x1f\n" +
+	"\x1bSWITCH_STATE_BOM_VALIDATING\x10\x06\x12\x16\n" +
+	"\x12SWITCH_STATE_READY\x10\a\x12\x1c\n" +
+	"\x18SWITCH_STATE_MAINTENANCE\x10\b\x12\x1f\n" +
+	"\x1bSWITCH_STATE_REPROVISIONING\x10\t\x12\x1d\n" +
+	"\x19SWITCH_STATE_ROTATING_BMC\x10\n" +
+	"\x12\x16\n" +
+	"\x12SWITCH_STATE_ERROR\x10\v\x12\x19\n" +
+	"\x15SWITCH_STATE_DELETING\x10\f\x12 \n" +
+	"\x1cSWITCH_STATE_DECOMMISSIONING\x10\r2\xc2\x01\n" +
 	"\x15NicoNetworkingService\x12P\n" +
 	"\n" +
 	"GetVpcByID\x12#.nico.provider.v1.GetVpcByIDRequest\x1a\x1d.nico.provider.v1.VpcResponse\x12W\n" +
@@ -959,7 +2697,13 @@ const file_provider_v1_services_proto_rawDesc = "" +
 	"GetSubnets\x12#.nico.provider.v1.GetSubnetsRequest\x1a$.nico.provider.v1.SubnetListResponse2\xd3\x01\n" +
 	"\x12NicoComputeService\x12_\n" +
 	"\x0fGetInstanceByID\x12(.nico.provider.v1.GetInstanceByIDRequest\x1a\".nico.provider.v1.InstanceResponse\x12\\\n" +
-	"\x0eGetMachineByID\x12'.nico.provider.v1.GetMachineByIDRequest\x1a!.nico.provider.v1.MachineResponseBHZFgithub.com/NVIDIA/infra-controller/provider-api/provider/v1;providerv1b\x06proto3"
+	"\x0eGetMachineByID\x12'.nico.provider.v1.GetMachineByIDRequest\x1a!.nico.provider.v1.MachineResponse2\xa8\x04\n" +
+	"\x11NicoSwitchService\x12]\n" +
+	"\fListSwitches\x12%.nico.provider.v1.ListSwitchesRequest\x1a&.nico.provider.v1.ListSwitchesResponse\x12T\n" +
+	"\tGetSwitch\x12\".nico.provider.v1.GetSwitchRequest\x1a#.nico.provider.v1.GetSwitchResponse\x12p\n" +
+	"\x16GetSwitchRoutingConfig\x12/.nico.provider.v1.GetSwitchRoutingConfigRequest\x1a%.nico.provider.v1.SwitchRoutingConfig\x12r\n" +
+	"\x13ListSwitchNeighbors\x12,.nico.provider.v1.ListSwitchNeighborsRequest\x1a-.nico.provider.v1.ListSwitchNeighborsResponse\x12x\n" +
+	"\x15ReportSwitchNeighbors\x12..nico.provider.v1.ReportSwitchNeighborsRequest\x1a/.nico.provider.v1.ReportSwitchNeighborsResponseBHZFgithub.com/NVIDIA/infra-controller/provider-api/provider/v1;providerv1b\x06proto3"
 
 var (
 	file_provider_v1_services_proto_rawDescOnce sync.Once
@@ -973,45 +2717,102 @@ func file_provider_v1_services_proto_rawDescGZIP() []byte {
 	return file_provider_v1_services_proto_rawDescData
 }
 
-var file_provider_v1_services_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_provider_v1_services_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_provider_v1_services_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
 var file_provider_v1_services_proto_goTypes = []any{
-	(*GetVpcByIDRequest)(nil),      // 0: nico.provider.v1.GetVpcByIDRequest
-	(*VpcResponse)(nil),            // 1: nico.provider.v1.VpcResponse
-	(*Vpc)(nil),                    // 2: nico.provider.v1.Vpc
-	(*GetSubnetsRequest)(nil),      // 3: nico.provider.v1.GetSubnetsRequest
-	(*SubnetListResponse)(nil),     // 4: nico.provider.v1.SubnetListResponse
-	(*Subnet)(nil),                 // 5: nico.provider.v1.Subnet
-	(*GetInstanceByIDRequest)(nil), // 6: nico.provider.v1.GetInstanceByIDRequest
-	(*InstanceResponse)(nil),       // 7: nico.provider.v1.InstanceResponse
-	(*Instance)(nil),               // 8: nico.provider.v1.Instance
-	(*GetMachineByIDRequest)(nil),  // 9: nico.provider.v1.GetMachineByIDRequest
-	(*MachineResponse)(nil),        // 10: nico.provider.v1.MachineResponse
-	(*Machine)(nil),                // 11: nico.provider.v1.Machine
-	nil,                            // 12: nico.provider.v1.Vpc.LabelsEntry
-	nil,                            // 13: nico.provider.v1.Instance.LabelsEntry
-	nil,                            // 14: nico.provider.v1.Machine.LabelsEntry
+	(SwitchPlatform)(0),                   // 0: nico.provider.v1.SwitchPlatform
+	(SwitchState)(0),                      // 1: nico.provider.v1.SwitchState
+	(*GetVpcByIDRequest)(nil),             // 2: nico.provider.v1.GetVpcByIDRequest
+	(*VpcResponse)(nil),                   // 3: nico.provider.v1.VpcResponse
+	(*Vpc)(nil),                           // 4: nico.provider.v1.Vpc
+	(*GetSubnetsRequest)(nil),             // 5: nico.provider.v1.GetSubnetsRequest
+	(*SubnetListResponse)(nil),            // 6: nico.provider.v1.SubnetListResponse
+	(*Subnet)(nil),                        // 7: nico.provider.v1.Subnet
+	(*GetInstanceByIDRequest)(nil),        // 8: nico.provider.v1.GetInstanceByIDRequest
+	(*InstanceResponse)(nil),              // 9: nico.provider.v1.InstanceResponse
+	(*Instance)(nil),                      // 10: nico.provider.v1.Instance
+	(*GetMachineByIDRequest)(nil),         // 11: nico.provider.v1.GetMachineByIDRequest
+	(*MachineResponse)(nil),               // 12: nico.provider.v1.MachineResponse
+	(*Machine)(nil),                       // 13: nico.provider.v1.Machine
+	(*ListSwitchesRequest)(nil),           // 14: nico.provider.v1.ListSwitchesRequest
+	(*ListSwitchesResponse)(nil),          // 15: nico.provider.v1.ListSwitchesResponse
+	(*GetSwitchRequest)(nil),              // 16: nico.provider.v1.GetSwitchRequest
+	(*GetSwitchResponse)(nil),             // 17: nico.provider.v1.GetSwitchResponse
+	(*NicoSwitch)(nil),                    // 18: nico.provider.v1.NicoSwitch
+	(*SwitchPort)(nil),                    // 19: nico.provider.v1.SwitchPort
+	(*GetSwitchRoutingConfigRequest)(nil), // 20: nico.provider.v1.GetSwitchRoutingConfigRequest
+	(*SwitchRoutingConfig)(nil),           // 21: nico.provider.v1.SwitchRoutingConfig
+	(*Vrf)(nil),                           // 22: nico.provider.v1.Vrf
+	(*BgpPeer)(nil),                       // 23: nico.provider.v1.BgpPeer
+	(*IsisInterface)(nil),                 // 24: nico.provider.v1.IsisInterface
+	(*EvpnConfig)(nil),                    // 25: nico.provider.v1.EvpnConfig
+	(*L2Vni)(nil),                         // 26: nico.provider.v1.L2Vni
+	(*L3Vni)(nil),                         // 27: nico.provider.v1.L3Vni
+	(*ListSwitchNeighborsRequest)(nil),    // 28: nico.provider.v1.ListSwitchNeighborsRequest
+	(*ListSwitchNeighborsResponse)(nil),   // 29: nico.provider.v1.ListSwitchNeighborsResponse
+	(*CableLink)(nil),                     // 30: nico.provider.v1.CableLink
+	(*CableEndpoint)(nil),                 // 31: nico.provider.v1.CableEndpoint
+	(*ReportSwitchNeighborsRequest)(nil),  // 32: nico.provider.v1.ReportSwitchNeighborsRequest
+	(*ReportSwitchNeighborsResponse)(nil), // 33: nico.provider.v1.ReportSwitchNeighborsResponse
+	nil,                                   // 34: nico.provider.v1.Vpc.LabelsEntry
+	nil,                                   // 35: nico.provider.v1.Instance.LabelsEntry
+	nil,                                   // 36: nico.provider.v1.Machine.LabelsEntry
+	nil,                                   // 37: nico.provider.v1.NicoSwitch.LabelsEntry
+	(*timestamppb.Timestamp)(nil),         // 38: google.protobuf.Timestamp
 }
 var file_provider_v1_services_proto_depIdxs = []int32{
-	2,  // 0: nico.provider.v1.VpcResponse.vpc:type_name -> nico.provider.v1.Vpc
-	12, // 1: nico.provider.v1.Vpc.labels:type_name -> nico.provider.v1.Vpc.LabelsEntry
-	5,  // 2: nico.provider.v1.SubnetListResponse.subnets:type_name -> nico.provider.v1.Subnet
-	8,  // 3: nico.provider.v1.InstanceResponse.instance:type_name -> nico.provider.v1.Instance
-	13, // 4: nico.provider.v1.Instance.labels:type_name -> nico.provider.v1.Instance.LabelsEntry
-	11, // 5: nico.provider.v1.MachineResponse.machine:type_name -> nico.provider.v1.Machine
-	14, // 6: nico.provider.v1.Machine.labels:type_name -> nico.provider.v1.Machine.LabelsEntry
-	0,  // 7: nico.provider.v1.NicoNetworkingService.GetVpcByID:input_type -> nico.provider.v1.GetVpcByIDRequest
-	3,  // 8: nico.provider.v1.NicoNetworkingService.GetSubnets:input_type -> nico.provider.v1.GetSubnetsRequest
-	6,  // 9: nico.provider.v1.NicoComputeService.GetInstanceByID:input_type -> nico.provider.v1.GetInstanceByIDRequest
-	9,  // 10: nico.provider.v1.NicoComputeService.GetMachineByID:input_type -> nico.provider.v1.GetMachineByIDRequest
-	1,  // 11: nico.provider.v1.NicoNetworkingService.GetVpcByID:output_type -> nico.provider.v1.VpcResponse
-	4,  // 12: nico.provider.v1.NicoNetworkingService.GetSubnets:output_type -> nico.provider.v1.SubnetListResponse
-	7,  // 13: nico.provider.v1.NicoComputeService.GetInstanceByID:output_type -> nico.provider.v1.InstanceResponse
-	10, // 14: nico.provider.v1.NicoComputeService.GetMachineByID:output_type -> nico.provider.v1.MachineResponse
-	11, // [11:15] is the sub-list for method output_type
-	7,  // [7:11] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	4,  // 0: nico.provider.v1.VpcResponse.vpc:type_name -> nico.provider.v1.Vpc
+	34, // 1: nico.provider.v1.Vpc.labels:type_name -> nico.provider.v1.Vpc.LabelsEntry
+	7,  // 2: nico.provider.v1.SubnetListResponse.subnets:type_name -> nico.provider.v1.Subnet
+	10, // 3: nico.provider.v1.InstanceResponse.instance:type_name -> nico.provider.v1.Instance
+	35, // 4: nico.provider.v1.Instance.labels:type_name -> nico.provider.v1.Instance.LabelsEntry
+	13, // 5: nico.provider.v1.MachineResponse.machine:type_name -> nico.provider.v1.Machine
+	36, // 6: nico.provider.v1.Machine.labels:type_name -> nico.provider.v1.Machine.LabelsEntry
+	18, // 7: nico.provider.v1.ListSwitchesResponse.switches:type_name -> nico.provider.v1.NicoSwitch
+	18, // 8: nico.provider.v1.GetSwitchResponse.switch:type_name -> nico.provider.v1.NicoSwitch
+	0,  // 9: nico.provider.v1.NicoSwitch.platform:type_name -> nico.provider.v1.SwitchPlatform
+	1,  // 10: nico.provider.v1.NicoSwitch.state:type_name -> nico.provider.v1.SwitchState
+	37, // 11: nico.provider.v1.NicoSwitch.labels:type_name -> nico.provider.v1.NicoSwitch.LabelsEntry
+	19, // 12: nico.provider.v1.NicoSwitch.ports:type_name -> nico.provider.v1.SwitchPort
+	38, // 13: nico.provider.v1.NicoSwitch.created:type_name -> google.protobuf.Timestamp
+	38, // 14: nico.provider.v1.NicoSwitch.updated:type_name -> google.protobuf.Timestamp
+	31, // 15: nico.provider.v1.SwitchPort.connected_to:type_name -> nico.provider.v1.CableEndpoint
+	22, // 16: nico.provider.v1.SwitchRoutingConfig.vrfs:type_name -> nico.provider.v1.Vrf
+	23, // 17: nico.provider.v1.SwitchRoutingConfig.bgp_peers:type_name -> nico.provider.v1.BgpPeer
+	24, // 18: nico.provider.v1.SwitchRoutingConfig.isis_interfaces:type_name -> nico.provider.v1.IsisInterface
+	25, // 19: nico.provider.v1.SwitchRoutingConfig.evpn:type_name -> nico.provider.v1.EvpnConfig
+	26, // 20: nico.provider.v1.SwitchRoutingConfig.l2_vnis:type_name -> nico.provider.v1.L2Vni
+	27, // 21: nico.provider.v1.SwitchRoutingConfig.l3_vnis:type_name -> nico.provider.v1.L3Vni
+	30, // 22: nico.provider.v1.ListSwitchNeighborsResponse.expected_neighbors:type_name -> nico.provider.v1.CableLink
+	30, // 23: nico.provider.v1.ListSwitchNeighborsResponse.observed_neighbors:type_name -> nico.provider.v1.CableLink
+	38, // 24: nico.provider.v1.ListSwitchNeighborsResponse.last_observed_at:type_name -> google.protobuf.Timestamp
+	31, // 25: nico.provider.v1.CableLink.local:type_name -> nico.provider.v1.CableEndpoint
+	31, // 26: nico.provider.v1.CableLink.remote:type_name -> nico.provider.v1.CableEndpoint
+	30, // 27: nico.provider.v1.ReportSwitchNeighborsRequest.observed_neighbors:type_name -> nico.provider.v1.CableLink
+	38, // 28: nico.provider.v1.ReportSwitchNeighborsRequest.observed_at:type_name -> google.protobuf.Timestamp
+	2,  // 29: nico.provider.v1.NicoNetworkingService.GetVpcByID:input_type -> nico.provider.v1.GetVpcByIDRequest
+	5,  // 30: nico.provider.v1.NicoNetworkingService.GetSubnets:input_type -> nico.provider.v1.GetSubnetsRequest
+	8,  // 31: nico.provider.v1.NicoComputeService.GetInstanceByID:input_type -> nico.provider.v1.GetInstanceByIDRequest
+	11, // 32: nico.provider.v1.NicoComputeService.GetMachineByID:input_type -> nico.provider.v1.GetMachineByIDRequest
+	14, // 33: nico.provider.v1.NicoSwitchService.ListSwitches:input_type -> nico.provider.v1.ListSwitchesRequest
+	16, // 34: nico.provider.v1.NicoSwitchService.GetSwitch:input_type -> nico.provider.v1.GetSwitchRequest
+	20, // 35: nico.provider.v1.NicoSwitchService.GetSwitchRoutingConfig:input_type -> nico.provider.v1.GetSwitchRoutingConfigRequest
+	28, // 36: nico.provider.v1.NicoSwitchService.ListSwitchNeighbors:input_type -> nico.provider.v1.ListSwitchNeighborsRequest
+	32, // 37: nico.provider.v1.NicoSwitchService.ReportSwitchNeighbors:input_type -> nico.provider.v1.ReportSwitchNeighborsRequest
+	3,  // 38: nico.provider.v1.NicoNetworkingService.GetVpcByID:output_type -> nico.provider.v1.VpcResponse
+	6,  // 39: nico.provider.v1.NicoNetworkingService.GetSubnets:output_type -> nico.provider.v1.SubnetListResponse
+	9,  // 40: nico.provider.v1.NicoComputeService.GetInstanceByID:output_type -> nico.provider.v1.InstanceResponse
+	12, // 41: nico.provider.v1.NicoComputeService.GetMachineByID:output_type -> nico.provider.v1.MachineResponse
+	15, // 42: nico.provider.v1.NicoSwitchService.ListSwitches:output_type -> nico.provider.v1.ListSwitchesResponse
+	17, // 43: nico.provider.v1.NicoSwitchService.GetSwitch:output_type -> nico.provider.v1.GetSwitchResponse
+	21, // 44: nico.provider.v1.NicoSwitchService.GetSwitchRoutingConfig:output_type -> nico.provider.v1.SwitchRoutingConfig
+	29, // 45: nico.provider.v1.NicoSwitchService.ListSwitchNeighbors:output_type -> nico.provider.v1.ListSwitchNeighborsResponse
+	33, // 46: nico.provider.v1.NicoSwitchService.ReportSwitchNeighbors:output_type -> nico.provider.v1.ReportSwitchNeighborsResponse
+	38, // [38:47] is the sub-list for method output_type
+	29, // [29:38] is the sub-list for method input_type
+	29, // [29:29] is the sub-list for extension type_name
+	29, // [29:29] is the sub-list for extension extendee
+	0,  // [0:29] is the sub-list for field type_name
 }
 
 func init() { file_provider_v1_services_proto_init() }
@@ -1024,13 +2825,14 @@ func file_provider_v1_services_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_provider_v1_services_proto_rawDesc), len(file_provider_v1_services_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   15,
+			NumEnums:      2,
+			NumMessages:   36,
 			NumExtensions: 0,
-			NumServices:   2,
+			NumServices:   3,
 		},
 		GoTypes:           file_provider_v1_services_proto_goTypes,
 		DependencyIndexes: file_provider_v1_services_proto_depIdxs,
+		EnumInfos:         file_provider_v1_services_proto_enumTypes,
 		MessageInfos:      file_provider_v1_services_proto_msgTypes,
 	}.Build()
 	File_provider_v1_services_proto = out.File

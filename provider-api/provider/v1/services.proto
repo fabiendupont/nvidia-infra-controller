@@ -19,6 +19,8 @@ syntax = "proto3";
 
 package nico.provider.v1;
 
+import "google/protobuf/timestamp.proto";
+
 option go_package = "github.com/NVIDIA/infra-controller/provider-api/provider/v1;providerv1";
 
 // NicoNetworkingService exposes networking resource queries for cross-domain
@@ -129,4 +131,333 @@ message Machine {
   bool is_assigned = 6;
   string hostname = 7;
   map<string, string> labels = 8;
+}
+
+// ---------- Switch service ----------
+
+// NicoSwitchService exposes switch inventory, intended routing topology, and
+// cable-neighbor data to external provider sidecars.
+//
+// Scoping: all RPCs are scoped to the site_id supplied in the request.
+// A provider receives the site(s) it manages in InitRequest.config["site_ids"]
+// (comma-separated UUIDs).  Requests for a site the provider does not manage
+// are rejected with PERMISSION_DENIED.
+//
+// Auth: same mTLS client certificate used for NicoNetworkingService and
+// NicoComputeService.  No additional token exchange is required.
+//
+// Data freshness: inventory and routing config reflect the data stored in
+// NICo's database (intended state).  Observed (live) switch state must be
+// fetched directly from the switch by the provider (e.g. via NVUE or NETCONF).
+//
+// Data model gaps (fields defined here that NICo does not yet persist):
+//   - NicoSwitch.platform: NOS type; inferred via NVUE probing but not stored.
+//   - NicoSwitch.management_ip: NVOS management IP; known to DHCP but not on
+//     the Switch row.
+//   - SwitchPort: port-level inventory is not currently persisted.
+//   - SwitchRoutingConfig.bgp_peers: BGP topology not stored in NICo.
+//   - SwitchRoutingConfig.isis_interfaces: IS-IS topology not stored.
+//   - SwitchRoutingConfig.evpn: EVPN fabric parameters not stored.
+//   - EvpnConfig.esi_base_mac, fabric_mac, df_preference: not stored.
+service NicoSwitchService {
+  // ListSwitches returns all switches in the given site visible to the
+  // calling provider.
+  rpc ListSwitches(ListSwitchesRequest) returns (ListSwitchesResponse);
+
+  // GetSwitch returns a single switch by its UUID.
+  rpc GetSwitch(GetSwitchRequest) returns (GetSwitchResponse);
+
+  // GetSwitchRoutingConfig returns the intended routing configuration for a
+  // switch.  Fields that NICo does not yet persist are returned as empty/zero
+  // values; see the field-level comments for the current storage status.
+  rpc GetSwitchRoutingConfig(GetSwitchRoutingConfigRequest) returns (SwitchRoutingConfig);
+
+  // ListSwitchNeighbors returns the expected (topology-model) cable neighbors
+  // for each port of a switch, as recorded by the operator in NICo.
+  rpc ListSwitchNeighbors(ListSwitchNeighborsRequest) returns (ListSwitchNeighborsResponse);
+
+  // ReportSwitchNeighbors allows a provider to write back observed LLDP
+  // neighbors after a live discovery sweep.  NICo stores these as the
+  // "observed" side of cable validation and fires a
+  // "switch/post-report-neighbors" async hook so other providers can react.
+  rpc ReportSwitchNeighbors(ReportSwitchNeighborsRequest) returns (ReportSwitchNeighborsResponse);
+}
+
+// ---------- Switch inventory messages ----------
+
+message ListSwitchesRequest {
+  // site_id filters results to a single site.  Required.
+  string site_id = 1;
+
+  // rack_id optionally narrows the list to one rack.
+  string rack_id = 2;
+
+  // include_non_ready includes switches that are not yet in the Ready state.
+  // Default false: only Ready switches are returned.
+  bool include_non_ready = 3;
+}
+
+message ListSwitchesResponse {
+  repeated NicoSwitch switches = 1;
+  int32 total = 2;
+}
+
+message GetSwitchRequest {
+  string id = 1;
+}
+
+message GetSwitchResponse {
+  NicoSwitch switch = 1;
+}
+
+// NicoSwitch is the provider-facing view of a switch managed by NICo.
+//
+// Storage status per field:
+//   - id, name, serial_number, site_id, rack_id, slot_number, tray_index,
+//     bmc_mac, labels, state: stored today.
+//   - bmc_ip: derived from BmcInfo, stored today.
+//   - manufacturer, model, firmware_version: stored as optional operator-
+//     supplied fields.
+//   - platform [gap]: NOS type inferred via NVUE probing but not persisted.
+//     Returns PLATFORM_UNSPECIFIED until added to the Switch DB model.
+//   - management_ip [gap]: NVOS management IP known to the DHCP subsystem
+//     but not surfaced on the Switch row.
+//   - credential_ref: opaque key the provider uses to retrieve NVOS credentials
+//     from NICo's secrets service.  Format: "<site_id>/<serial_number>/nvos".
+//     The actual secret value is never sent over this API.
+//   - ports [gap]: port-level inventory not currently persisted.
+message NicoSwitch {
+  string id = 1;
+  string name = 2;
+  string serial_number = 3;
+  string site_id = 4;
+  string rack_id = 5;
+  int32 slot_number = 6;
+  int32 tray_index = 7;
+
+  string bmc_mac = 8;
+  string bmc_ip = 9;
+
+  // [gap] Not stored; returns PLATFORM_UNSPECIFIED until persisted in NICo.
+  SwitchPlatform platform = 10;
+  string manufacturer = 11;
+  string model = 12;
+  string firmware_version = 13;
+
+  // [gap] NVOS management IP; not yet stored on the Switch row.
+  string management_ip = 14;
+
+  SwitchState state = 15;
+
+  // credential_ref is the key to look up NVOS credentials in NICo's secrets
+  // service.  Format: "<site_id>/<serial_number>/nvos".
+  string credential_ref = 16;
+
+  map<string, string> labels = 17;
+
+  // [gap] Port-level inventory is not currently persisted.  Returns empty list.
+  repeated SwitchPort ports = 18;
+
+  google.protobuf.Timestamp created = 19;
+  google.protobuf.Timestamp updated = 20;
+}
+
+// SwitchPlatform identifies the switch NOS.
+enum SwitchPlatform {
+  PLATFORM_UNSPECIFIED = 0;
+  PLATFORM_NVOS = 1;       // NVIDIA Cumulus Linux / NV-OS
+  PLATFORM_MLNX_OS = 2;   // Mellanox MLNX-OS (legacy)
+  PLATFORM_CUMULUS = 3;   // Cumulus Linux (non-NVIDIA)
+  PLATFORM_ARISTA_EOS = 4;
+  PLATFORM_JUNOS = 5;
+}
+
+// SwitchState mirrors SwitchControllerState from NICo core
+// (crates/api-model/src/switch/mod.rs).  Sub-state details (e.g. configuring
+// sub-phase) are omitted; see NicoSwitch.labels["state_detail"] for the raw
+// JSON if needed.
+enum SwitchState {
+  SWITCH_STATE_UNSPECIFIED = 0;
+  SWITCH_STATE_CREATED = 1;
+  SWITCH_STATE_INITIALIZING = 2;
+  SWITCH_STATE_CONFIGURING = 3;
+  SWITCH_STATE_FETCH_INFO = 4;
+  SWITCH_STATE_VALIDATING = 5;
+  SWITCH_STATE_BOM_VALIDATING = 6;
+  SWITCH_STATE_READY = 7;
+  SWITCH_STATE_MAINTENANCE = 8;
+  SWITCH_STATE_REPROVISIONING = 9;
+  SWITCH_STATE_ROTATING_BMC = 10;
+  SWITCH_STATE_ERROR = 11;
+  SWITCH_STATE_DELETING = 12;
+  SWITCH_STATE_DECOMMISSIONING = 13;
+}
+
+// SwitchPort is a physical or logical interface on the switch.
+// [gap]: Not currently persisted in NICo; server returns an empty list.
+message SwitchPort {
+  string name = 1;      // e.g. "swp1", "et-0/0/0"
+  string speed = 2;     // e.g. "100G", "400G"
+  string breakout = 3;  // e.g. "4x25G"
+
+  // connected_to is the expected cable peer, if recorded.
+  CableEndpoint connected_to = 4;
+}
+
+// ---------- Routing topology messages ----------
+
+message GetSwitchRoutingConfigRequest {
+  string switch_id = 1;
+}
+
+// SwitchRoutingConfig holds the intended routing configuration for one switch.
+//
+// Storage status:
+//   - vrfs: partially derivable today from VPCs associated with this switch
+//     (via NicoNetworkingService + routing_profile).  Full VRF model (RD, RT)
+//     requires new NICo storage.
+//   - l2_vnis, l3_vnis: partially derivable from Subnet.network_virtualization_type.
+//   - bgp_peers [gap]: not stored; returns empty until persisted.
+//   - isis_interfaces [gap]: not stored; returns empty until persisted.
+//   - evpn [gap]: not stored; returns empty until persisted.
+message SwitchRoutingConfig {
+  string switch_id = 1;
+
+  // vrfs: intended VRF table.  Derivable from VPCs whose routing_profile
+  // implies VRF creation.
+  repeated Vrf vrfs = 2;
+
+  // bgp_peers: intended BGP neighbors per VRF.
+  // [gap] Not stored in NICo; returns empty until persisted.
+  repeated BgpPeer bgp_peers = 3;
+
+  // isis_interfaces: intended IS-IS configuration per interface.
+  // [gap] Not stored in NICo; returns empty until persisted.
+  repeated IsisInterface isis_interfaces = 4;
+
+  // evpn: intended EVPN fabric parameters.
+  // [gap] Not stored in NICo; returns empty/zero until persisted.
+  EvpnConfig evpn = 5;
+
+  // l2_vnis: intended L2 VNI table (VLAN ↔ VNI mappings).
+  // Partially derivable from Subnet.network_virtualization_type.
+  repeated L2Vni l2_vnis = 6;
+
+  // l3_vnis: intended L3 VNI table (VRF ↔ VNI mappings).
+  // Partially derivable from VPC.routing_profile.
+  repeated L3Vni l3_vnis = 7;
+}
+
+message Vrf {
+  string name = 1;
+  string route_distinguisher = 2;         // e.g. "65100:10"
+  repeated string import_route_targets = 3;
+  repeated string export_route_targets = 4;
+  uint32 l3_vni = 5;                      // 0 if no L3 VNI assigned
+}
+
+message BgpPeer {
+  string peer_ip = 1;         // empty for unnumbered peers
+  uint32 peer_asn = 2;
+  string vrf = 3;             // VRF name; "default" for the global VRF
+  string peer_group = 4;
+  uint32 ttl = 5;             // multihop TTL; 0 means directly connected
+  string source_interface = 6;
+  string route_role = 7;      // e.g. "spine", "leaf", "border"
+  bool evpn_enabled = 8;      // whether L2VPN EVPN address family is active
+}
+
+message IsisInterface {
+  string interface_name = 1;  // e.g. "swp1"
+  uint32 metric = 2;
+  string circuit_type = 3;    // "level-1" | "level-2" | "level-1-2"
+}
+
+message EvpnConfig {
+  // esi_base_mac: base MAC used to derive per-port ESI values.
+  // [gap] Not stored in NICo.
+  string esi_base_mac = 1;
+
+  // fabric_mac: anycast gateway MAC for this switch.
+  // [gap] Not stored in NICo.
+  string fabric_mac = 2;
+
+  // df_preference: Designated Forwarder election preference (0–65535).
+  // [gap] Not stored in NICo.
+  uint32 df_preference = 3;
+}
+
+message L2Vni {
+  uint32 vni = 1;
+  uint32 vlan = 2;
+  repeated string route_targets = 3;
+  string vrf = 4;  // VRF this VNI's SVI belongs to
+}
+
+message L3Vni {
+  uint32 vni = 1;
+  string vrf = 2;
+  repeated string route_targets = 3;
+}
+
+// ---------- Cable / neighbor messages ----------
+
+message ListSwitchNeighborsRequest {
+  string switch_id = 1;
+}
+
+message ListSwitchNeighborsResponse {
+  // expected_neighbors: topology-model view from NICo's cabling records.
+  repeated CableLink expected_neighbors = 1;
+
+  // observed_neighbors: last provider-reported LLDP view; empty if no report
+  // has been submitted yet.
+  repeated CableLink observed_neighbors = 2;
+
+  // last_observed_at: timestamp of the most recent ReportSwitchNeighbors call.
+  google.protobuf.Timestamp last_observed_at = 3;
+}
+
+// CableLink describes one cable between two ports (switch↔switch or
+// switch↔compute interface).
+message CableLink {
+  CableEndpoint local = 1;
+  CableEndpoint remote = 2;
+
+  // status: set by NICo after comparing expected vs observed neighbors.
+  // "ok" | "missing" | "unexpected" | "unknown"
+  string status = 3;
+}
+
+// CableEndpoint identifies one end of a cable.
+message CableEndpoint {
+  string device_id = 1;    // NICo Switch or Machine UUID
+  string device_type = 2;  // "switch" | "machine"
+  string port_name = 3;    // e.g. "swp1", "eth0"
+  string chassis_id = 4;   // LLDP chassis-id TLV (MAC or string)
+  string port_id = 5;      // LLDP port-id TLV
+}
+
+// ---------- Neighbor write-back messages ----------
+
+// ReportSwitchNeighborsRequest carries observed LLDP neighbors from a provider
+// back to NICo.  NICo stores these, diffs against expected topology, and fires
+// a "switch/post-report-neighbors" async hook with the diff result.
+//
+// Rationale: the provider sidecar is the only component with network access to
+// the switches; NICo core cannot SSH/LLDP-poll them directly.  The write-back
+// closes the cable-validation loop without requiring NICo to implement switch
+// access itself.
+message ReportSwitchNeighborsRequest {
+  string switch_id = 1;
+  repeated CableLink observed_neighbors = 2;
+  google.protobuf.Timestamp observed_at = 3;
+}
+
+message ReportSwitchNeighborsResponse {
+  // diff_summary: human-readable account of what matched and what diverged.
+  string diff_summary = 1;
+
+  // mismatch_count: number of ports where observed ≠ expected.
+  int32 mismatch_count = 2;
 }

@@ -32,16 +32,18 @@ type Registry struct {
 	mu           sync.RWMutex
 	providers    map[string]Provider
 	features     map[string]string // feature name → provider name
-	order        []string          // init order after dependency resolution
-	hooks        *hookRegistry
-	providerGroup *echo.Group     // org-scoped route group; set by InitAPIServer
+	order          []string      // init order after dependency resolution
+	hooks          *hookRegistry
+	providerGroup  *echo.Group  // org-scoped route group; set by InitAPIServer
+	providerPrefix string       // parameterized prefix of providerGroup, e.g. "/v2/org/:orgName/nico"
 }
 
-// SetProviderGroup stores the org-scoped Echo group used to mount provider
-// routes. Called once by InitAPIServer before starting KubernetesDiscovery.
-func (r *Registry) SetProviderGroup(g *echo.Group) {
+// SetProviderGroup stores the org-scoped Echo group and its parameterized
+// prefix. Called once by InitAPIServer before starting KubernetesDiscovery.
+func (r *Registry) SetProviderGroup(g *echo.Group, prefix string) {
 	r.mu.Lock()
 	r.providerGroup = g
+	r.providerPrefix = prefix
 	r.mu.Unlock()
 }
 
@@ -50,6 +52,13 @@ func (r *Registry) ProviderGroup() *echo.Group {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return r.providerGroup
+}
+
+// ProviderPrefix returns the parameterized prefix of the provider group.
+func (r *Registry) ProviderPrefix() string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.providerPrefix
 }
 
 // NewRegistry creates a new provider registry.

@@ -1,0 +1,75 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nico-provisioner-metal3.name" . }}
+  namespace: {{ include "nico-provisioner-metal3.namespace" . }}
+  labels:
+    {{- include "nico-provisioner-metal3.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "nico-provisioner-metal3.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "nico-provisioner-metal3.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "nico-provisioner-metal3.name" . }}
+      containers:
+        - name: provisioner-metal3
+          image: "{{ include "nico-provisioner-metal3.image" . }}"
+          imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.port }}
+              name: grpc
+          env:
+            - name: METAL3_NAMESPACE
+              value: {{ .Values.metal3.namespace | quote }}
+            {{- if not .Values.kubeconfig.inCluster }}
+            {{- if .Values.kubeconfig.secretName }}
+            - name: KUBECONFIG
+              value: /etc/kubeconfig/kubeconfig
+            {{- end }}
+            {{- end }}
+            {{- if .Values.ironic.inspectorURL }}
+            - name: IRONIC_INSPECTOR_URL
+              value: {{ .Values.ironic.inspectorURL | quote }}
+            {{- end }}
+            {{- if .Values.ironic.token }}
+            - name: IRONIC_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nico-provisioner-metal3.fullname" . }}-ironic
+                  key: token
+            {{- end }}
+          {{- if and (not .Values.kubeconfig.inCluster) .Values.kubeconfig.secretName }}
+          volumeMounts:
+            - name: kubeconfig
+              mountPath: /etc/kubeconfig
+              readOnly: true
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: 3
+            periodSeconds: 5
+      {{- if and (not .Values.kubeconfig.inCluster) .Values.kubeconfig.secretName }}
+      volumes:
+        - name: kubeconfig
+          secret:
+            secretName: {{ .Values.kubeconfig.secretName }}
+      {{- end }}

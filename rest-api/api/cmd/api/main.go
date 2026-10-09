@@ -33,6 +33,11 @@ import (
 	wfconfig "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/config"
 	wfsc "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/client/site"
 
+	// In-tree API providers
+	computeprovider  "github.com/NVIDIA/infra-controller/rest-api/api/pkg/providers/compute"
+	networkingprovider "github.com/NVIDIA/infra-controller/rest-api/api/pkg/providers/networking"
+	siteprovider     "github.com/NVIDIA/infra-controller/rest-api/api/pkg/providers/site"
+
 	// Imports for API doc generation
 	_ "github.com/NVIDIA/infra-controller/rest-api/api/pkg/api/model"
 )
@@ -191,6 +196,14 @@ func run(ctx context.Context) (retErr error) {
 		ServiceEndpoints:       serviceEndpoints,
 	}
 
+	// Register in-tree API providers. These run in-process alongside the API
+	// server and serve the activated domain routes (VPC, instance, machine,
+	// site, expected inventory). External providers are discovered dynamically
+	// via Kubernetes ConfigMaps after InitAPIServer sets up the route group.
+	registry.Register(networkingprovider.New())
+	registry.Register(computeprovider.New())
+	registry.Register(siteprovider.New())
+
 	if err := registry.InitAll(providerCtx); err != nil {
 		return fmt.Errorf("failed to initialize providers: %w", err)
 	}
@@ -214,6 +227,11 @@ func run(ctx context.Context) (retErr error) {
 		}(w, p.TaskQueue())
 	}
 
+	// Initialize API Echo instance — must happen before discovery so that
+	// SetProviderGroup is called (inside InitAPIServer) before the informer
+	// processes existing ConfigMaps and tries to register provider routes.
+	e := capis.InitAPIServer(cfg, dbSession, tc, tnc, scp, powerProvisioner, registry)
+
 	if ns := os.Getenv("NICO_K8S_DISCOVERY_NAMESPACE"); ns != "" {
 		kd, err := provider.NewKubernetesDiscovery(registry, ns, providerCtx)
 		if err != nil {
@@ -223,9 +241,6 @@ func run(ctx context.Context) (retErr error) {
 			defer kd.Stop()
 		}
 	}
-
-	// Initialize API Echo instance
-	e := capis.InitAPIServer(cfg, dbSession, tc, tnc, scp, powerProvisioner, registry)
 	e.Server.Addr = fmt.Sprintf(":%d", cfg.GetAPIPort())
 	servers := []*echo.Echo{e}
 

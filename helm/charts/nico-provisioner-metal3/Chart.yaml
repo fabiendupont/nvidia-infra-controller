@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+apiVersion: v2
+name: nico-provisioner-metal3
+description: |
+  NICo provider that provisions bare-metal machines via Metal3 Bare Metal
+  Operator (BMO) and Ironic. Hook-driven: intercepts pre-machine-provision
+  for machines annotated with nico.nvidia.com/provisioner=metal3.
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - nico
+  - metal3
+  - baremetal
+  - ironic
+  - provider

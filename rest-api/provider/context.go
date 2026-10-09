@@ -76,6 +76,12 @@ type ProviderContext struct {
 	// that delegate power operations to the DPS service.
 	DPS dpsclient.PowerProvisioner
 
+	// MachineProvisioner is the pluggable bare-metal provisioning backend.
+	// Typed as interface{} to avoid an import cycle between rest-api/provider/
+	// and rest-api/api/pkg/provisioner/. The compute provider casts it to
+	// provisioner.MachineProvisioner; unset means use the built-in Core gRPC path.
+	MachineProvisioner interface{}
+
 	// RouteGroup is the org-scoped Echo group where provider routes are
 	// registered. Populated by InitAPIServer; used by KubernetesDiscovery
 	// to register dynamically discovered providers' routes at runtime.

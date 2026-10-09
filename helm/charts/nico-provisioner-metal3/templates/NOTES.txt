@@ -1,0 +1,46 @@
+NICo Metal3 Provisioner installed in namespace {{ .Release.Namespace }}.
+
+The provider will register with NICo automatically when the NICo API server
+discovers the ConfigMap labelled nico.nvidia.com/provider=true that this chart
+creates. Check registration:
+
+  kubectl logs -n {{ .Release.Namespace }} deploy/nico-rest-api | grep metal3
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REQUIRED: annotate machines to route them through Metal3
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Machines without the provisioner annotation use NICo Core gRPC (default).
+To route a machine through Metal3 Bare Metal Operator, add the annotation
+to its expectedMachine resource before NICo discovers the physical machine:
+
+  kubectl patch expectedmachine <name> --type=merge \
+    -p '{"metadata":{"annotations":{"nico.nvidia.com/provisioner":"metal3"}}}'
+
+Or declare it in the expectedMachine manifest:
+  metadata:
+    annotations:
+      nico.nvidia.com/provisioner: metal3
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PREREQUISITES (must be deployed before this chart)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+See providers/provisioner-metal3/PREREQUISITES.md for the full list.
+Summary:
+
+  1. Metal3 Bare Metal Operator (namespace: {{ .Values.metal3.namespace }})
+     OpenShift: included when platform: baremetal is configured.
+
+  2. Ironic + Ironic Inspector (included with Metal3 in OCP 4.22)
+     Set ironic.inspectorURL in values to enable TPM/IB/DPU attestation:
+       --set ironic.inspectorURL=http://ironic-inspector.{{ .Values.metal3.namespace }}:5050
+
+  3. Custom IPA image (optional — enables TPM EK, IB GUID, DPU inspection)
+     Build from: https://github.com/rh-ecosystem-edge/nico-ipa-extensions
+{{- if .Values.customIPA.enabled }}
+     ✓ customIPA is ENABLED — Provisioning CR will use: {{ .Values.customIPA.image }}
+{{- else }}
+     ✗ customIPA is disabled — stock OCP IPA is used (TPM/IB/DPU fields absent).
+       Enable: --set customIPA.enabled=true,customIPA.image=<your-image>
+{{- end }}

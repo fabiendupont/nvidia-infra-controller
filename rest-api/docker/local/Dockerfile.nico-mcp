@@ -30,6 +30,7 @@ COPY rest-api/go.mod rest-api/go.sum ./
 COPY rest-api/sdk/standard/go.mod ./sdk/standard/
 # provider-api: required by rest-api/go.mod replace directive
 COPY provider-api/ ../provider-api/
+COPY providers/provisioner-metal3/ ../providers/provisioner-metal3/
 ENV GOWORK=off
 ENV GONOSUMDB=github.com/NVIDIA/infra-controller/*
 # Download dependencies

@@ -333,3 +333,331 @@ var NicoComputeService_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "provider/v1/services.proto",
 }
+
+const (
+	NicoSwitchService_ListSwitches_FullMethodName           = "/nico.provider.v1.NicoSwitchService/ListSwitches"
+	NicoSwitchService_GetSwitch_FullMethodName              = "/nico.provider.v1.NicoSwitchService/GetSwitch"
+	NicoSwitchService_GetSwitchRoutingConfig_FullMethodName = "/nico.provider.v1.NicoSwitchService/GetSwitchRoutingConfig"
+	NicoSwitchService_ListSwitchNeighbors_FullMethodName    = "/nico.provider.v1.NicoSwitchService/ListSwitchNeighbors"
+	NicoSwitchService_ReportSwitchNeighbors_FullMethodName  = "/nico.provider.v1.NicoSwitchService/ReportSwitchNeighbors"
+)
+
+// NicoSwitchServiceClient is the client API for NicoSwitchService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// NicoSwitchService exposes switch inventory, intended routing topology, and
+// cable-neighbor data to external provider sidecars.
+//
+// Scoping: all RPCs are scoped to the site_id supplied in the request.
+// A provider receives the site(s) it manages in InitRequest.config["site_ids"]
+// (comma-separated UUIDs).  Requests for a site the provider does not manage
+// are rejected with PERMISSION_DENIED.
+//
+// Auth: same mTLS client certificate used for NicoNetworkingService and
+// NicoComputeService.  No additional token exchange is required.
+//
+// Data freshness: inventory and routing config reflect the data stored in
+// NICo's database (intended state).  Observed (live) switch state must be
+// fetched directly from the switch by the provider (e.g. via NVUE or NETCONF).
+//
+// Data model gaps (fields defined here that NICo does not yet persist):
+//   - NicoSwitch.platform: NOS type; inferred via NVUE probing but not stored.
+//   - NicoSwitch.management_ip: NVOS management IP; known to DHCP but not on
+//     the Switch row.
+//   - SwitchPort: port-level inventory is not currently persisted.
+//   - SwitchRoutingConfig.bgp_peers: BGP topology not stored in NICo.
+//   - SwitchRoutingConfig.isis_interfaces: IS-IS topology not stored.
+//   - SwitchRoutingConfig.evpn: EVPN fabric parameters not stored.
+//   - EvpnConfig.esi_base_mac, fabric_mac, df_preference: not stored.
+type NicoSwitchServiceClient interface {
+	// ListSwitches returns all switches in the given site visible to the
+	// calling provider.
+	ListSwitches(ctx context.Context, in *ListSwitchesRequest, opts ...grpc.CallOption) (*ListSwitchesResponse, error)
+	// GetSwitch returns a single switch by its UUID.
+	GetSwitch(ctx context.Context, in *GetSwitchRequest, opts ...grpc.CallOption) (*GetSwitchResponse, error)
+	// GetSwitchRoutingConfig returns the intended routing configuration for a
+	// switch.  Fields that NICo does not yet persist are returned as empty/zero
+	// values; see the field-level comments for the current storage status.
+	GetSwitchRoutingConfig(ctx context.Context, in *GetSwitchRoutingConfigRequest, opts ...grpc.CallOption) (*SwitchRoutingConfig, error)
+	// ListSwitchNeighbors returns the expected (topology-model) cable neighbors
+	// for each port of a switch, as recorded by the operator in NICo.
+	ListSwitchNeighbors(ctx context.Context, in *ListSwitchNeighborsRequest, opts ...grpc.CallOption) (*ListSwitchNeighborsResponse, error)
+	// ReportSwitchNeighbors allows a provider to write back observed LLDP
+	// neighbors after a live discovery sweep.  NICo stores these as the
+	// "observed" side of cable validation and fires a
+	// "switch/post-report-neighbors" async hook so other providers can react.
+	ReportSwitchNeighbors(ctx context.Context, in *ReportSwitchNeighborsRequest, opts ...grpc.CallOption) (*ReportSwitchNeighborsResponse, error)
+}
+
+type nicoSwitchServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewNicoSwitchServiceClient(cc grpc.ClientConnInterface) NicoSwitchServiceClient {
+	return &nicoSwitchServiceClient{cc}
+}
+
+func (c *nicoSwitchServiceClient) ListSwitches(ctx context.Context, in *ListSwitchesRequest, opts ...grpc.CallOption) (*ListSwitchesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSwitchesResponse)
+	err := c.cc.Invoke(ctx, NicoSwitchService_ListSwitches_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *nicoSwitchServiceClient) GetSwitch(ctx context.Context, in *GetSwitchRequest, opts ...grpc.CallOption) (*GetSwitchResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetSwitchResponse)
+	err := c.cc.Invoke(ctx, NicoSwitchService_GetSwitch_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *nicoSwitchServiceClient) GetSwitchRoutingConfig(ctx context.Context, in *GetSwitchRoutingConfigRequest, opts ...grpc.CallOption) (*SwitchRoutingConfig, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SwitchRoutingConfig)
+	err := c.cc.Invoke(ctx, NicoSwitchService_GetSwitchRoutingConfig_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *nicoSwitchServiceClient) ListSwitchNeighbors(ctx context.Context, in *ListSwitchNeighborsRequest, opts ...grpc.CallOption) (*ListSwitchNeighborsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSwitchNeighborsResponse)
+	err := c.cc.Invoke(ctx, NicoSwitchService_ListSwitchNeighbors_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *nicoSwitchServiceClient) ReportSwitchNeighbors(ctx context.Context, in *ReportSwitchNeighborsRequest, opts ...grpc.CallOption) (*ReportSwitchNeighborsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReportSwitchNeighborsResponse)
+	err := c.cc.Invoke(ctx, NicoSwitchService_ReportSwitchNeighbors_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// NicoSwitchServiceServer is the server API for NicoSwitchService service.
+// All implementations must embed UnimplementedNicoSwitchServiceServer
+// for forward compatibility.
+//
+// NicoSwitchService exposes switch inventory, intended routing topology, and
+// cable-neighbor data to external provider sidecars.
+//
+// Scoping: all RPCs are scoped to the site_id supplied in the request.
+// A provider receives the site(s) it manages in InitRequest.config["site_ids"]
+// (comma-separated UUIDs).  Requests for a site the provider does not manage
+// are rejected with PERMISSION_DENIED.
+//
+// Auth: same mTLS client certificate used for NicoNetworkingService and
+// NicoComputeService.  No additional token exchange is required.
+//
+// Data freshness: inventory and routing config reflect the data stored in
+// NICo's database (intended state).  Observed (live) switch state must be
+// fetched directly from the switch by the provider (e.g. via NVUE or NETCONF).
+//
+// Data model gaps (fields defined here that NICo does not yet persist):
+//   - NicoSwitch.platform: NOS type; inferred via NVUE probing but not stored.
+//   - NicoSwitch.management_ip: NVOS management IP; known to DHCP but not on
+//     the Switch row.
+//   - SwitchPort: port-level inventory is not currently persisted.
+//   - SwitchRoutingConfig.bgp_peers: BGP topology not stored in NICo.
+//   - SwitchRoutingConfig.isis_interfaces: IS-IS topology not stored.
+//   - SwitchRoutingConfig.evpn: EVPN fabric parameters not stored.
+//   - EvpnConfig.esi_base_mac, fabric_mac, df_preference: not stored.
+type NicoSwitchServiceServer interface {
+	// ListSwitches returns all switches in the given site visible to the
+	// calling provider.
+	ListSwitches(context.Context, *ListSwitchesRequest) (*ListSwitchesResponse, error)
+	// GetSwitch returns a single switch by its UUID.
+	GetSwitch(context.Context, *GetSwitchRequest) (*GetSwitchResponse, error)
+	// GetSwitchRoutingConfig returns the intended routing configuration for a
+	// switch.  Fields that NICo does not yet persist are returned as empty/zero
+	// values; see the field-level comments for the current storage status.
+	GetSwitchRoutingConfig(context.Context, *GetSwitchRoutingConfigRequest) (*SwitchRoutingConfig, error)
+	// ListSwitchNeighbors returns the expected (topology-model) cable neighbors
+	// for each port of a switch, as recorded by the operator in NICo.
+	ListSwitchNeighbors(context.Context, *ListSwitchNeighborsRequest) (*ListSwitchNeighborsResponse, error)
+	// ReportSwitchNeighbors allows a provider to write back observed LLDP
+	// neighbors after a live discovery sweep.  NICo stores these as the
+	// "observed" side of cable validation and fires a
+	// "switch/post-report-neighbors" async hook so other providers can react.
+	ReportSwitchNeighbors(context.Context, *ReportSwitchNeighborsRequest) (*ReportSwitchNeighborsResponse, error)
+	mustEmbedUnimplementedNicoSwitchServiceServer()
+}
+
+// UnimplementedNicoSwitchServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedNicoSwitchServiceServer struct{}
+
+func (UnimplementedNicoSwitchServiceServer) ListSwitches(context.Context, *ListSwitchesRequest) (*ListSwitchesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListSwitches not implemented")
+}
+func (UnimplementedNicoSwitchServiceServer) GetSwitch(context.Context, *GetSwitchRequest) (*GetSwitchResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetSwitch not implemented")
+}
+func (UnimplementedNicoSwitchServiceServer) GetSwitchRoutingConfig(context.Context, *GetSwitchRoutingConfigRequest) (*SwitchRoutingConfig, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetSwitchRoutingConfig not implemented")
+}
+func (UnimplementedNicoSwitchServiceServer) ListSwitchNeighbors(context.Context, *ListSwitchNeighborsRequest) (*ListSwitchNeighborsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListSwitchNeighbors not implemented")
+}
+func (UnimplementedNicoSwitchServiceServer) ReportSwitchNeighbors(context.Context, *ReportSwitchNeighborsRequest) (*ReportSwitchNeighborsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReportSwitchNeighbors not implemented")
+}
+func (UnimplementedNicoSwitchServiceServer) mustEmbedUnimplementedNicoSwitchServiceServer() {}
+func (UnimplementedNicoSwitchServiceServer) testEmbeddedByValue()                           {}
+
+// UnsafeNicoSwitchServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to NicoSwitchServiceServer will
+// result in compilation errors.
+type UnsafeNicoSwitchServiceServer interface {
+	mustEmbedUnimplementedNicoSwitchServiceServer()
+}
+
+func RegisterNicoSwitchServiceServer(s grpc.ServiceRegistrar, srv NicoSwitchServiceServer) {
+	// If the following call panics, it indicates UnimplementedNicoSwitchServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&NicoSwitchService_ServiceDesc, srv)
+}
+
+func _NicoSwitchService_ListSwitches_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSwitchesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NicoSwitchServiceServer).ListSwitches(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NicoSwitchService_ListSwitches_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NicoSwitchServiceServer).ListSwitches(ctx, req.(*ListSwitchesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NicoSwitchService_GetSwitch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSwitchRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NicoSwitchServiceServer).GetSwitch(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NicoSwitchService_GetSwitch_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NicoSwitchServiceServer).GetSwitch(ctx, req.(*GetSwitchRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NicoSwitchService_GetSwitchRoutingConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSwitchRoutingConfigRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NicoSwitchServiceServer).GetSwitchRoutingConfig(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NicoSwitchService_GetSwitchRoutingConfig_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NicoSwitchServiceServer).GetSwitchRoutingConfig(ctx, req.(*GetSwitchRoutingConfigRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NicoSwitchService_ListSwitchNeighbors_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSwitchNeighborsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NicoSwitchServiceServer).ListSwitchNeighbors(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NicoSwitchService_ListSwitchNeighbors_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NicoSwitchServiceServer).ListSwitchNeighbors(ctx, req.(*ListSwitchNeighborsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NicoSwitchService_ReportSwitchNeighbors_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReportSwitchNeighborsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NicoSwitchServiceServer).ReportSwitchNeighbors(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NicoSwitchService_ReportSwitchNeighbors_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NicoSwitchServiceServer).ReportSwitchNeighbors(ctx, req.(*ReportSwitchNeighborsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// NicoSwitchService_ServiceDesc is the grpc.ServiceDesc for NicoSwitchService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var NicoSwitchService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "nico.provider.v1.NicoSwitchService",
+	HandlerType: (*NicoSwitchServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListSwitches",
+			Handler:    _NicoSwitchService_ListSwitches_Handler,
+		},
+		{
+			MethodName: "GetSwitch",
+			Handler:    _NicoSwitchService_GetSwitch_Handler,
+		},
+		{
+			MethodName: "GetSwitchRoutingConfig",
+			Handler:    _NicoSwitchService_GetSwitchRoutingConfig_Handler,
+		},
+		{
+			MethodName: "ListSwitchNeighbors",
+			Handler:    _NicoSwitchService_ListSwitchNeighbors_Handler,
+		},
+		{
+			MethodName: "ReportSwitchNeighbors",
+			Handler:    _NicoSwitchService_ReportSwitchNeighbors_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "provider/v1/services.proto",
+}

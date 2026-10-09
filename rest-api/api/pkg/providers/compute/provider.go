@@ -26,6 +26,7 @@ import (
 	"github.com/NVIDIA/infra-controller/rest-api/api/pkg/client/site"
 	dpsclient "github.com/NVIDIA/infra-controller/rest-api/api/pkg/client/dps"
 	"github.com/NVIDIA/infra-controller/rest-api/api/internal/config"
+	mp "github.com/NVIDIA/infra-controller/rest-api/api/pkg/provisioner"
 	cdb "github.com/NVIDIA/infra-controller/rest-api/db/pkg/db"
 	"github.com/NVIDIA/infra-controller/rest-api/provider"
 	"github.com/NVIDIA/infra-controller/rest-api/api/pkg/providers/compute/computesvc"
@@ -40,6 +41,7 @@ type ComputeProvider struct {
 	scp           *site.ClientPool
 	cfg           *config.Config
 	dps           dpsclient.PowerProvisioner
+	provisioner   mp.MachineProvisioner
 	apiPathPrefix string
 
 	temporalNamespace      string
@@ -66,6 +68,11 @@ func (p *ComputeProvider) Init(ctx provider.ProviderContext) error {
 	p.tnc = ctx.TemporalNS
 	p.scp = ctx.SiteClientPool
 	p.dps = ctx.DPS
+	if prov, ok := ctx.MachineProvisioner.(mp.MachineProvisioner); ok {
+		p.provisioner = prov
+	} else {
+		p.provisioner = &mp.CoreGRPCProvisioner{}
+	}
 	if apiCfg, ok := ctx.Config.(*config.Config); ok {
 		p.cfg = apiCfg
 	}
@@ -104,6 +111,11 @@ func (p *ComputeProvider) InitStandalone() error {
 func (p *ComputeProvider) Shutdown(_ context.Context) error {
 	return nil
 }
+
+// Provisioner returns the active machine provisioner backend.
+// External providers (e.g. Metal3, Ironic) set this via ProviderContext.MachineProvisioner
+// during Init; the default is CoreGRPCProvisioner which preserves the existing path.
+func (p *ComputeProvider) Provisioner() mp.MachineProvisioner { return p.provisioner }
 
 // Service returns the compute service for cross-domain access.
 func (p *ComputeProvider) Service() computesvc.Service {

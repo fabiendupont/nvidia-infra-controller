@@ -6,6 +6,7 @@ package instance
 import (
 	"go.temporal.io/sdk/workflow"
 
+	mp "github.com/NVIDIA/infra-controller/rest-api/api/pkg/provisioner"
 	swa "github.com/NVIDIA/infra-controller/rest-api/site-workflow/pkg/activity"
 	sww "github.com/NVIDIA/infra-controller/rest-api/site-workflow/pkg/workflow"
 )
@@ -40,7 +41,14 @@ func (api *API) RegisterSubscriber() error {
 
 	// Register activities
 
-	instanceManager := swa.NewManageInstance(ManagerAccess.Data.EB.Managers.CoreGrpc.Client)
+	// Build provisioner registry from PROVISIONER_BACKENDS env var.
+	// CoreGRPCProvisioner is always the default; additional backends (e.g. "metal3")
+	// are registered when compiled with the corresponding build tag.
+	registry := mp.NewRegistry()
+	RegisterProvisionerBackends(registry)
+
+	instanceManager := swa.NewManageInstanceWithRegistry(
+		ManagerAccess.Data.EB.Managers.CoreGrpc.Client, registry, nil)
 
 	// Register CreateInstanceOnSite activity
 	ManagerAccess.Data.EB.Managers.Workflow.Temporal.Worker.RegisterActivity(instanceManager.CreateInstanceOnSite)

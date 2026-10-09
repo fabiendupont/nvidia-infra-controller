@@ -27,7 +27,7 @@ import (
 
 // RegisterRoutes registers all site-related API routes on the given Echo group.
 func (p *SiteProvider) RegisterRoutes(group *echo.Group) {
-	prefix := p.apiPathPrefix
+	prefix := ""
 
 	// Site endpoints
 	group.Add(http.MethodPost, prefix+"/site", apiHandler.NewCreateSiteHandler(p.dbSession, p.tc, p.tnc, p.cfg).Handle)
