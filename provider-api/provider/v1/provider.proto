@@ -48,7 +48,17 @@ service NicoProvider {
   rpc HandleSyncHook(HookEvent) returns (HookResult);
 
   // GetOpenAPIFragment returns the provider's OpenAPI spec fragment.
+  // Actions declared in GetResourceTypes SHOULD also appear here so that
+  // NICo's OpenAPI aggregation and the UI sidebar stay consistent.
   rpc GetOpenAPIFragment(GetOpenAPIFragmentRequest) returns (OpenAPIFragment);
+
+  // GetResourceTypes returns the resource types and actions this provider
+  // contributes to NICo's dynamic UI.  NICo calls this once after Init succeeds
+  // and caches the result; providers signal changes by restarting.
+  // The sidebar renders one nav entry per registered resource type, linking to
+  // {api_prefix}/ui/.  The provider is responsible for serving complete HTML
+  // pages at those paths via HandleRequest — NICo core does not template them.
+  rpc GetResourceTypes(GetResourceTypesRequest) returns (GetResourceTypesResponse);
 }
 
 // GetInfoRequest is an empty request for GetInfo.
@@ -187,4 +197,57 @@ message GetOpenAPIFragmentRequest {}
 // OpenAPIFragment carries the provider's OpenAPI spec as YAML.
 message OpenAPIFragment {
   bytes spec_yaml = 1;
+}
+
+// GetResourceTypesRequest is an empty request for GetResourceTypes.
+message GetResourceTypesRequest {}
+
+// GetResourceTypesResponse lists the resource types this provider contributes.
+message GetResourceTypesResponse {
+  repeated ResourceTypeDescriptor resource_types = 1;
+}
+
+// ResourceTypeDescriptor describes a resource type that a provider contributes
+// to NICo's dynamic UI.  NICo renders one sidebar nav entry per entry and
+// routes /org/:orgName/:apiName/{api_prefix}/ui/* to the provider's
+// HandleRequest RPC.
+//
+// Actions declared here SHOULD also appear in the OpenAPI fragment returned by
+// GetOpenAPIFragment so that the sidebar and the API spec stay consistent.
+message ResourceTypeDescriptor {
+  // name is the singular resource name shown in UI labels, e.g. "switch".
+  string name = 1;
+
+  // plural is the plural form used for list pages, e.g. "switches".
+  string plural = 2;
+
+  // api_prefix is the provider-served HTTP prefix relative to the provider
+  // route group, e.g. "/provider/switch-config".  NICo proxies requests whose
+  // path begins with this prefix to HandleRequest.
+  string api_prefix = 3;
+
+  // actions lists the operator-visible actions for this resource type.
+  repeated ActionDescriptor actions = 4;
+}
+
+// ActionDescriptor describes one operator-visible action for a resource type.
+// NICo renders these as buttons or menu items on resource detail pages.
+message ActionDescriptor {
+  // name is the machine-readable action identifier, e.g. "push-config".
+  string name = 1;
+
+  // label is the human-readable button text, e.g. "Push Config".
+  string label = 2;
+
+  // method is the HTTP method: "GET" or "POST".
+  string method = 3;
+
+  // path is the action endpoint relative to api_prefix, e.g.
+  // "/resources/{id}/actions/push-config".  The placeholder {id} is replaced
+  // with the resource UUID by the UI.
+  string path = 4;
+
+  // requires_confirmation controls whether NICo prompts the operator before
+  // submitting the request.
+  bool requires_confirmation = 5;
 }
