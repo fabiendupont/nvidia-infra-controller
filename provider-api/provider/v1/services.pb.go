@@ -1175,27 +1175,27 @@ func (x *GetSwitchRequest) GetId() string {
 	return ""
 }
 
-type GetSwitchResponse struct {
+type SwitchResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Switch        *NicoSwitch            `protobuf:"bytes,1,opt,name=switch,proto3" json:"switch,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetSwitchResponse) Reset() {
-	*x = GetSwitchResponse{}
+func (x *SwitchResponse) Reset() {
+	*x = SwitchResponse{}
 	mi := &file_provider_v1_services_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetSwitchResponse) String() string {
+func (x *SwitchResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetSwitchResponse) ProtoMessage() {}
+func (*SwitchResponse) ProtoMessage() {}
 
-func (x *GetSwitchResponse) ProtoReflect() protoreflect.Message {
+func (x *SwitchResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_provider_v1_services_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1207,12 +1207,12 @@ func (x *GetSwitchResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetSwitchResponse.ProtoReflect.Descriptor instead.
-func (*GetSwitchResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use SwitchResponse.ProtoReflect.Descriptor instead.
+func (*SwitchResponse) Descriptor() ([]byte, []int) {
 	return file_provider_v1_services_proto_rawDescGZIP(), []int{15}
 }
 
-func (x *GetSwitchResponse) GetSwitch() *NicoSwitch {
+func (x *SwitchResponse) GetSwitch() *NicoSwitch {
 	if x != nil {
 		return x.Switch
 	}
@@ -2095,27 +2095,27 @@ func (x *L3Vni) GetRouteTargets() []string {
 	return nil
 }
 
-type ListSwitchNeighborsRequest struct {
+type ListExpectedNeighborsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SwitchId      string                 `protobuf:"bytes,1,opt,name=switch_id,json=switchId,proto3" json:"switch_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ListSwitchNeighborsRequest) Reset() {
-	*x = ListSwitchNeighborsRequest{}
+func (x *ListExpectedNeighborsRequest) Reset() {
+	*x = ListExpectedNeighborsRequest{}
 	mi := &file_provider_v1_services_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ListSwitchNeighborsRequest) String() string {
+func (x *ListExpectedNeighborsRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ListSwitchNeighborsRequest) ProtoMessage() {}
+func (*ListExpectedNeighborsRequest) ProtoMessage() {}
 
-func (x *ListSwitchNeighborsRequest) ProtoReflect() protoreflect.Message {
+func (x *ListExpectedNeighborsRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_provider_v1_services_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -2127,19 +2127,19 @@ func (x *ListSwitchNeighborsRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListSwitchNeighborsRequest.ProtoReflect.Descriptor instead.
-func (*ListSwitchNeighborsRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListExpectedNeighborsRequest.ProtoReflect.Descriptor instead.
+func (*ListExpectedNeighborsRequest) Descriptor() ([]byte, []int) {
 	return file_provider_v1_services_proto_rawDescGZIP(), []int{26}
 }
 
-func (x *ListSwitchNeighborsRequest) GetSwitchId() string {
+func (x *ListExpectedNeighborsRequest) GetSwitchId() string {
 	if x != nil {
 		return x.SwitchId
 	}
 	return ""
 }
 
-type ListSwitchNeighborsResponse struct {
+type ListExpectedNeighborsResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// expected_neighbors: topology-model view from NICo's cabling records.
 	ExpectedNeighbors []*CableLink `protobuf:"bytes,1,rep,name=expected_neighbors,json=expectedNeighbors,proto3" json:"expected_neighbors,omitempty"`
@@ -2152,20 +2152,20 @@ type ListSwitchNeighborsResponse struct {
 	sizeCache      protoimpl.SizeCache
 }
 
-func (x *ListSwitchNeighborsResponse) Reset() {
-	*x = ListSwitchNeighborsResponse{}
+func (x *ListExpectedNeighborsResponse) Reset() {
+	*x = ListExpectedNeighborsResponse{}
 	mi := &file_provider_v1_services_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ListSwitchNeighborsResponse) String() string {
+func (x *ListExpectedNeighborsResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ListSwitchNeighborsResponse) ProtoMessage() {}
+func (*ListExpectedNeighborsResponse) ProtoMessage() {}
 
-func (x *ListSwitchNeighborsResponse) ProtoReflect() protoreflect.Message {
+func (x *ListExpectedNeighborsResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_provider_v1_services_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -2177,26 +2177,26 @@ func (x *ListSwitchNeighborsResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListSwitchNeighborsResponse.ProtoReflect.Descriptor instead.
-func (*ListSwitchNeighborsResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListExpectedNeighborsResponse.ProtoReflect.Descriptor instead.
+func (*ListExpectedNeighborsResponse) Descriptor() ([]byte, []int) {
 	return file_provider_v1_services_proto_rawDescGZIP(), []int{27}
 }
 
-func (x *ListSwitchNeighborsResponse) GetExpectedNeighbors() []*CableLink {
+func (x *ListExpectedNeighborsResponse) GetExpectedNeighbors() []*CableLink {
 	if x != nil {
 		return x.ExpectedNeighbors
 	}
 	return nil
 }
 
-func (x *ListSwitchNeighborsResponse) GetObservedNeighbors() []*CableLink {
+func (x *ListExpectedNeighborsResponse) GetObservedNeighbors() []*CableLink {
 	if x != nil {
 		return x.ObservedNeighbors
 	}
 	return nil
 }
 
-func (x *ListSwitchNeighborsResponse) GetLastObservedAt() *timestamppb.Timestamp {
+func (x *ListExpectedNeighborsResponse) GetLastObservedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.LastObservedAt
 	}
@@ -2344,15 +2344,15 @@ func (x *CableEndpoint) GetPortId() string {
 	return ""
 }
 
-// ReportSwitchNeighborsRequest carries observed LLDP neighbors from a provider
-// back to NICo.  NICo stores these, diffs against expected topology, and fires
-// a "switch/post-report-neighbors" async hook with the diff result.
+// ReportObservedNeighborsRequest carries observed LLDP neighbors from a
+// provider back to NICo.  NICo stores these, diffs against expected topology,
+// and fires a "switch/post-report-neighbors" async hook with the diff result.
 //
 // Rationale: the provider sidecar is the only component with network access to
 // the switches; NICo core cannot SSH/LLDP-poll them directly.  The write-back
 // closes the cable-validation loop without requiring NICo to implement switch
 // access itself.
-type ReportSwitchNeighborsRequest struct {
+type ReportObservedNeighborsRequest struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	SwitchId          string                 `protobuf:"bytes,1,opt,name=switch_id,json=switchId,proto3" json:"switch_id,omitempty"`
 	ObservedNeighbors []*CableLink           `protobuf:"bytes,2,rep,name=observed_neighbors,json=observedNeighbors,proto3" json:"observed_neighbors,omitempty"`
@@ -2361,20 +2361,20 @@ type ReportSwitchNeighborsRequest struct {
 	sizeCache         protoimpl.SizeCache
 }
 
-func (x *ReportSwitchNeighborsRequest) Reset() {
-	*x = ReportSwitchNeighborsRequest{}
+func (x *ReportObservedNeighborsRequest) Reset() {
+	*x = ReportObservedNeighborsRequest{}
 	mi := &file_provider_v1_services_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ReportSwitchNeighborsRequest) String() string {
+func (x *ReportObservedNeighborsRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ReportSwitchNeighborsRequest) ProtoMessage() {}
+func (*ReportObservedNeighborsRequest) ProtoMessage() {}
 
-func (x *ReportSwitchNeighborsRequest) ProtoReflect() protoreflect.Message {
+func (x *ReportObservedNeighborsRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_provider_v1_services_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -2386,33 +2386,33 @@ func (x *ReportSwitchNeighborsRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ReportSwitchNeighborsRequest.ProtoReflect.Descriptor instead.
-func (*ReportSwitchNeighborsRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ReportObservedNeighborsRequest.ProtoReflect.Descriptor instead.
+func (*ReportObservedNeighborsRequest) Descriptor() ([]byte, []int) {
 	return file_provider_v1_services_proto_rawDescGZIP(), []int{30}
 }
 
-func (x *ReportSwitchNeighborsRequest) GetSwitchId() string {
+func (x *ReportObservedNeighborsRequest) GetSwitchId() string {
 	if x != nil {
 		return x.SwitchId
 	}
 	return ""
 }
 
-func (x *ReportSwitchNeighborsRequest) GetObservedNeighbors() []*CableLink {
+func (x *ReportObservedNeighborsRequest) GetObservedNeighbors() []*CableLink {
 	if x != nil {
 		return x.ObservedNeighbors
 	}
 	return nil
 }
 
-func (x *ReportSwitchNeighborsRequest) GetObservedAt() *timestamppb.Timestamp {
+func (x *ReportObservedNeighborsRequest) GetObservedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.ObservedAt
 	}
 	return nil
 }
 
-type ReportSwitchNeighborsResponse struct {
+type ReportObservedNeighborsResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// diff_summary: human-readable account of what matched and what diverged.
 	DiffSummary string `protobuf:"bytes,1,opt,name=diff_summary,json=diffSummary,proto3" json:"diff_summary,omitempty"`
@@ -2422,20 +2422,20 @@ type ReportSwitchNeighborsResponse struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ReportSwitchNeighborsResponse) Reset() {
-	*x = ReportSwitchNeighborsResponse{}
+func (x *ReportObservedNeighborsResponse) Reset() {
+	*x = ReportObservedNeighborsResponse{}
 	mi := &file_provider_v1_services_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ReportSwitchNeighborsResponse) String() string {
+func (x *ReportObservedNeighborsResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ReportSwitchNeighborsResponse) ProtoMessage() {}
+func (*ReportObservedNeighborsResponse) ProtoMessage() {}
 
-func (x *ReportSwitchNeighborsResponse) ProtoReflect() protoreflect.Message {
+func (x *ReportObservedNeighborsResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_provider_v1_services_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -2447,19 +2447,19 @@ func (x *ReportSwitchNeighborsResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ReportSwitchNeighborsResponse.ProtoReflect.Descriptor instead.
-func (*ReportSwitchNeighborsResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use ReportObservedNeighborsResponse.ProtoReflect.Descriptor instead.
+func (*ReportObservedNeighborsResponse) Descriptor() ([]byte, []int) {
 	return file_provider_v1_services_proto_rawDescGZIP(), []int{31}
 }
 
-func (x *ReportSwitchNeighborsResponse) GetDiffSummary() string {
+func (x *ReportObservedNeighborsResponse) GetDiffSummary() string {
 	if x != nil {
 		return x.DiffSummary
 	}
 	return ""
 }
 
-func (x *ReportSwitchNeighborsResponse) GetMismatchCount() int32 {
+func (x *ReportObservedNeighborsResponse) GetMismatchCount() int32 {
 	if x != nil {
 		return x.MismatchCount
 	}
@@ -2557,8 +2557,8 @@ const file_provider_v1_services_proto_rawDesc = "" +
 	"\bswitches\x18\x01 \x03(\v2\x1c.nico.provider.v1.NicoSwitchR\bswitches\x12\x14\n" +
 	"\x05total\x18\x02 \x01(\x05R\x05total\"\"\n" +
 	"\x10GetSwitchRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"I\n" +
-	"\x11GetSwitchResponse\x124\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"F\n" +
+	"\x0eSwitchResponse\x124\n" +
 	"\x06switch\x18\x01 \x01(\v2\x1c.nico.provider.v1.NicoSwitchR\x06switch\"\xb8\x06\n" +
 	"\n" +
 	"NicoSwitch\x12\x0e\n" +
@@ -2640,10 +2640,10 @@ const file_provider_v1_services_proto_rawDesc = "" +
 	"\x05L3Vni\x12\x10\n" +
 	"\x03vni\x18\x01 \x01(\rR\x03vni\x12\x10\n" +
 	"\x03vrf\x18\x02 \x01(\tR\x03vrf\x12#\n" +
-	"\rroute_targets\x18\x03 \x03(\tR\frouteTargets\"9\n" +
-	"\x1aListSwitchNeighborsRequest\x12\x1b\n" +
-	"\tswitch_id\x18\x01 \x01(\tR\bswitchId\"\xfb\x01\n" +
-	"\x1bListSwitchNeighborsResponse\x12J\n" +
+	"\rroute_targets\x18\x03 \x03(\tR\frouteTargets\";\n" +
+	"\x1cListExpectedNeighborsRequest\x12\x1b\n" +
+	"\tswitch_id\x18\x01 \x01(\tR\bswitchId\"\xfd\x01\n" +
+	"\x1dListExpectedNeighborsResponse\x12J\n" +
 	"\x12expected_neighbors\x18\x01 \x03(\v2\x1b.nico.provider.v1.CableLinkR\x11expectedNeighbors\x12J\n" +
 	"\x12observed_neighbors\x18\x02 \x03(\v2\x1b.nico.provider.v1.CableLinkR\x11observedNeighbors\x12D\n" +
 	"\x10last_observed_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x0elastObservedAt\"\x93\x01\n" +
@@ -2658,13 +2658,13 @@ const file_provider_v1_services_proto_rawDesc = "" +
 	"\tport_name\x18\x03 \x01(\tR\bportName\x12\x1d\n" +
 	"\n" +
 	"chassis_id\x18\x04 \x01(\tR\tchassisId\x12\x17\n" +
-	"\aport_id\x18\x05 \x01(\tR\x06portId\"\xc4\x01\n" +
-	"\x1cReportSwitchNeighborsRequest\x12\x1b\n" +
+	"\aport_id\x18\x05 \x01(\tR\x06portId\"\xc6\x01\n" +
+	"\x1eReportObservedNeighborsRequest\x12\x1b\n" +
 	"\tswitch_id\x18\x01 \x01(\tR\bswitchId\x12J\n" +
 	"\x12observed_neighbors\x18\x02 \x03(\v2\x1b.nico.provider.v1.CableLinkR\x11observedNeighbors\x12;\n" +
 	"\vobserved_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"observedAt\"i\n" +
-	"\x1dReportSwitchNeighborsResponse\x12!\n" +
+	"observedAt\"k\n" +
+	"\x1fReportObservedNeighborsResponse\x12!\n" +
 	"\fdiff_summary\x18\x01 \x01(\tR\vdiffSummary\x12%\n" +
 	"\x0emismatch_count\x18\x02 \x01(\x05R\rmismatchCount*\x96\x01\n" +
 	"\x0eSwitchPlatform\x12\x18\n" +
@@ -2697,13 +2697,13 @@ const file_provider_v1_services_proto_rawDesc = "" +
 	"GetSubnets\x12#.nico.provider.v1.GetSubnetsRequest\x1a$.nico.provider.v1.SubnetListResponse2\xd3\x01\n" +
 	"\x12NicoComputeService\x12_\n" +
 	"\x0fGetInstanceByID\x12(.nico.provider.v1.GetInstanceByIDRequest\x1a\".nico.provider.v1.InstanceResponse\x12\\\n" +
-	"\x0eGetMachineByID\x12'.nico.provider.v1.GetMachineByIDRequest\x1a!.nico.provider.v1.MachineResponse2\xa8\x04\n" +
+	"\x0eGetMachineByID\x12'.nico.provider.v1.GetMachineByIDRequest\x1a!.nico.provider.v1.MachineResponse2\xb1\x04\n" +
 	"\x11NicoSwitchService\x12]\n" +
-	"\fListSwitches\x12%.nico.provider.v1.ListSwitchesRequest\x1a&.nico.provider.v1.ListSwitchesResponse\x12T\n" +
-	"\tGetSwitch\x12\".nico.provider.v1.GetSwitchRequest\x1a#.nico.provider.v1.GetSwitchResponse\x12p\n" +
-	"\x16GetSwitchRoutingConfig\x12/.nico.provider.v1.GetSwitchRoutingConfigRequest\x1a%.nico.provider.v1.SwitchRoutingConfig\x12r\n" +
-	"\x13ListSwitchNeighbors\x12,.nico.provider.v1.ListSwitchNeighborsRequest\x1a-.nico.provider.v1.ListSwitchNeighborsResponse\x12x\n" +
-	"\x15ReportSwitchNeighbors\x12..nico.provider.v1.ReportSwitchNeighborsRequest\x1a/.nico.provider.v1.ReportSwitchNeighborsResponseBHZFgithub.com/NVIDIA/infra-controller/provider-api/provider/v1;providerv1b\x06proto3"
+	"\fListSwitches\x12%.nico.provider.v1.ListSwitchesRequest\x1a&.nico.provider.v1.ListSwitchesResponse\x12Q\n" +
+	"\tGetSwitch\x12\".nico.provider.v1.GetSwitchRequest\x1a .nico.provider.v1.SwitchResponse\x12p\n" +
+	"\x16GetSwitchRoutingConfig\x12/.nico.provider.v1.GetSwitchRoutingConfigRequest\x1a%.nico.provider.v1.SwitchRoutingConfig\x12x\n" +
+	"\x15ListExpectedNeighbors\x12..nico.provider.v1.ListExpectedNeighborsRequest\x1a/.nico.provider.v1.ListExpectedNeighborsResponse\x12~\n" +
+	"\x17ReportObservedNeighbors\x120.nico.provider.v1.ReportObservedNeighborsRequest\x1a1.nico.provider.v1.ReportObservedNeighborsResponseBHZFgithub.com/NVIDIA/infra-controller/provider-api/provider/v1;providerv1b\x06proto3"
 
 var (
 	file_provider_v1_services_proto_rawDescOnce sync.Once
@@ -2720,45 +2720,45 @@ func file_provider_v1_services_proto_rawDescGZIP() []byte {
 var file_provider_v1_services_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_provider_v1_services_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
 var file_provider_v1_services_proto_goTypes = []any{
-	(SwitchPlatform)(0),                   // 0: nico.provider.v1.SwitchPlatform
-	(SwitchState)(0),                      // 1: nico.provider.v1.SwitchState
-	(*GetVpcByIDRequest)(nil),             // 2: nico.provider.v1.GetVpcByIDRequest
-	(*VpcResponse)(nil),                   // 3: nico.provider.v1.VpcResponse
-	(*Vpc)(nil),                           // 4: nico.provider.v1.Vpc
-	(*GetSubnetsRequest)(nil),             // 5: nico.provider.v1.GetSubnetsRequest
-	(*SubnetListResponse)(nil),            // 6: nico.provider.v1.SubnetListResponse
-	(*Subnet)(nil),                        // 7: nico.provider.v1.Subnet
-	(*GetInstanceByIDRequest)(nil),        // 8: nico.provider.v1.GetInstanceByIDRequest
-	(*InstanceResponse)(nil),              // 9: nico.provider.v1.InstanceResponse
-	(*Instance)(nil),                      // 10: nico.provider.v1.Instance
-	(*GetMachineByIDRequest)(nil),         // 11: nico.provider.v1.GetMachineByIDRequest
-	(*MachineResponse)(nil),               // 12: nico.provider.v1.MachineResponse
-	(*Machine)(nil),                       // 13: nico.provider.v1.Machine
-	(*ListSwitchesRequest)(nil),           // 14: nico.provider.v1.ListSwitchesRequest
-	(*ListSwitchesResponse)(nil),          // 15: nico.provider.v1.ListSwitchesResponse
-	(*GetSwitchRequest)(nil),              // 16: nico.provider.v1.GetSwitchRequest
-	(*GetSwitchResponse)(nil),             // 17: nico.provider.v1.GetSwitchResponse
-	(*NicoSwitch)(nil),                    // 18: nico.provider.v1.NicoSwitch
-	(*SwitchPort)(nil),                    // 19: nico.provider.v1.SwitchPort
-	(*GetSwitchRoutingConfigRequest)(nil), // 20: nico.provider.v1.GetSwitchRoutingConfigRequest
-	(*SwitchRoutingConfig)(nil),           // 21: nico.provider.v1.SwitchRoutingConfig
-	(*Vrf)(nil),                           // 22: nico.provider.v1.Vrf
-	(*BgpPeer)(nil),                       // 23: nico.provider.v1.BgpPeer
-	(*IsisInterface)(nil),                 // 24: nico.provider.v1.IsisInterface
-	(*EvpnConfig)(nil),                    // 25: nico.provider.v1.EvpnConfig
-	(*L2Vni)(nil),                         // 26: nico.provider.v1.L2Vni
-	(*L3Vni)(nil),                         // 27: nico.provider.v1.L3Vni
-	(*ListSwitchNeighborsRequest)(nil),    // 28: nico.provider.v1.ListSwitchNeighborsRequest
-	(*ListSwitchNeighborsResponse)(nil),   // 29: nico.provider.v1.ListSwitchNeighborsResponse
-	(*CableLink)(nil),                     // 30: nico.provider.v1.CableLink
-	(*CableEndpoint)(nil),                 // 31: nico.provider.v1.CableEndpoint
-	(*ReportSwitchNeighborsRequest)(nil),  // 32: nico.provider.v1.ReportSwitchNeighborsRequest
-	(*ReportSwitchNeighborsResponse)(nil), // 33: nico.provider.v1.ReportSwitchNeighborsResponse
-	nil,                                   // 34: nico.provider.v1.Vpc.LabelsEntry
-	nil,                                   // 35: nico.provider.v1.Instance.LabelsEntry
-	nil,                                   // 36: nico.provider.v1.Machine.LabelsEntry
-	nil,                                   // 37: nico.provider.v1.NicoSwitch.LabelsEntry
-	(*timestamppb.Timestamp)(nil),         // 38: google.protobuf.Timestamp
+	(SwitchPlatform)(0),                     // 0: nico.provider.v1.SwitchPlatform
+	(SwitchState)(0),                        // 1: nico.provider.v1.SwitchState
+	(*GetVpcByIDRequest)(nil),               // 2: nico.provider.v1.GetVpcByIDRequest
+	(*VpcResponse)(nil),                     // 3: nico.provider.v1.VpcResponse
+	(*Vpc)(nil),                             // 4: nico.provider.v1.Vpc
+	(*GetSubnetsRequest)(nil),               // 5: nico.provider.v1.GetSubnetsRequest
+	(*SubnetListResponse)(nil),              // 6: nico.provider.v1.SubnetListResponse
+	(*Subnet)(nil),                          // 7: nico.provider.v1.Subnet
+	(*GetInstanceByIDRequest)(nil),          // 8: nico.provider.v1.GetInstanceByIDRequest
+	(*InstanceResponse)(nil),                // 9: nico.provider.v1.InstanceResponse
+	(*Instance)(nil),                        // 10: nico.provider.v1.Instance
+	(*GetMachineByIDRequest)(nil),           // 11: nico.provider.v1.GetMachineByIDRequest
+	(*MachineResponse)(nil),                 // 12: nico.provider.v1.MachineResponse
+	(*Machine)(nil),                         // 13: nico.provider.v1.Machine
+	(*ListSwitchesRequest)(nil),             // 14: nico.provider.v1.ListSwitchesRequest
+	(*ListSwitchesResponse)(nil),            // 15: nico.provider.v1.ListSwitchesResponse
+	(*GetSwitchRequest)(nil),                // 16: nico.provider.v1.GetSwitchRequest
+	(*SwitchResponse)(nil),                  // 17: nico.provider.v1.SwitchResponse
+	(*NicoSwitch)(nil),                      // 18: nico.provider.v1.NicoSwitch
+	(*SwitchPort)(nil),                      // 19: nico.provider.v1.SwitchPort
+	(*GetSwitchRoutingConfigRequest)(nil),   // 20: nico.provider.v1.GetSwitchRoutingConfigRequest
+	(*SwitchRoutingConfig)(nil),             // 21: nico.provider.v1.SwitchRoutingConfig
+	(*Vrf)(nil),                             // 22: nico.provider.v1.Vrf
+	(*BgpPeer)(nil),                         // 23: nico.provider.v1.BgpPeer
+	(*IsisInterface)(nil),                   // 24: nico.provider.v1.IsisInterface
+	(*EvpnConfig)(nil),                      // 25: nico.provider.v1.EvpnConfig
+	(*L2Vni)(nil),                           // 26: nico.provider.v1.L2Vni
+	(*L3Vni)(nil),                           // 27: nico.provider.v1.L3Vni
+	(*ListExpectedNeighborsRequest)(nil),    // 28: nico.provider.v1.ListExpectedNeighborsRequest
+	(*ListExpectedNeighborsResponse)(nil),   // 29: nico.provider.v1.ListExpectedNeighborsResponse
+	(*CableLink)(nil),                       // 30: nico.provider.v1.CableLink
+	(*CableEndpoint)(nil),                   // 31: nico.provider.v1.CableEndpoint
+	(*ReportObservedNeighborsRequest)(nil),  // 32: nico.provider.v1.ReportObservedNeighborsRequest
+	(*ReportObservedNeighborsResponse)(nil), // 33: nico.provider.v1.ReportObservedNeighborsResponse
+	nil,                                     // 34: nico.provider.v1.Vpc.LabelsEntry
+	nil,                                     // 35: nico.provider.v1.Instance.LabelsEntry
+	nil,                                     // 36: nico.provider.v1.Machine.LabelsEntry
+	nil,                                     // 37: nico.provider.v1.NicoSwitch.LabelsEntry
+	(*timestamppb.Timestamp)(nil),           // 38: google.protobuf.Timestamp
 }
 var file_provider_v1_services_proto_depIdxs = []int32{
 	4,  // 0: nico.provider.v1.VpcResponse.vpc:type_name -> nico.provider.v1.Vpc
@@ -2769,7 +2769,7 @@ var file_provider_v1_services_proto_depIdxs = []int32{
 	13, // 5: nico.provider.v1.MachineResponse.machine:type_name -> nico.provider.v1.Machine
 	36, // 6: nico.provider.v1.Machine.labels:type_name -> nico.provider.v1.Machine.LabelsEntry
 	18, // 7: nico.provider.v1.ListSwitchesResponse.switches:type_name -> nico.provider.v1.NicoSwitch
-	18, // 8: nico.provider.v1.GetSwitchResponse.switch:type_name -> nico.provider.v1.NicoSwitch
+	18, // 8: nico.provider.v1.SwitchResponse.switch:type_name -> nico.provider.v1.NicoSwitch
 	0,  // 9: nico.provider.v1.NicoSwitch.platform:type_name -> nico.provider.v1.SwitchPlatform
 	1,  // 10: nico.provider.v1.NicoSwitch.state:type_name -> nico.provider.v1.SwitchState
 	37, // 11: nico.provider.v1.NicoSwitch.labels:type_name -> nico.provider.v1.NicoSwitch.LabelsEntry
@@ -2783,13 +2783,13 @@ var file_provider_v1_services_proto_depIdxs = []int32{
 	25, // 19: nico.provider.v1.SwitchRoutingConfig.evpn:type_name -> nico.provider.v1.EvpnConfig
 	26, // 20: nico.provider.v1.SwitchRoutingConfig.l2_vnis:type_name -> nico.provider.v1.L2Vni
 	27, // 21: nico.provider.v1.SwitchRoutingConfig.l3_vnis:type_name -> nico.provider.v1.L3Vni
-	30, // 22: nico.provider.v1.ListSwitchNeighborsResponse.expected_neighbors:type_name -> nico.provider.v1.CableLink
-	30, // 23: nico.provider.v1.ListSwitchNeighborsResponse.observed_neighbors:type_name -> nico.provider.v1.CableLink
-	38, // 24: nico.provider.v1.ListSwitchNeighborsResponse.last_observed_at:type_name -> google.protobuf.Timestamp
+	30, // 22: nico.provider.v1.ListExpectedNeighborsResponse.expected_neighbors:type_name -> nico.provider.v1.CableLink
+	30, // 23: nico.provider.v1.ListExpectedNeighborsResponse.observed_neighbors:type_name -> nico.provider.v1.CableLink
+	38, // 24: nico.provider.v1.ListExpectedNeighborsResponse.last_observed_at:type_name -> google.protobuf.Timestamp
 	31, // 25: nico.provider.v1.CableLink.local:type_name -> nico.provider.v1.CableEndpoint
 	31, // 26: nico.provider.v1.CableLink.remote:type_name -> nico.provider.v1.CableEndpoint
-	30, // 27: nico.provider.v1.ReportSwitchNeighborsRequest.observed_neighbors:type_name -> nico.provider.v1.CableLink
-	38, // 28: nico.provider.v1.ReportSwitchNeighborsRequest.observed_at:type_name -> google.protobuf.Timestamp
+	30, // 27: nico.provider.v1.ReportObservedNeighborsRequest.observed_neighbors:type_name -> nico.provider.v1.CableLink
+	38, // 28: nico.provider.v1.ReportObservedNeighborsRequest.observed_at:type_name -> google.protobuf.Timestamp
 	2,  // 29: nico.provider.v1.NicoNetworkingService.GetVpcByID:input_type -> nico.provider.v1.GetVpcByIDRequest
 	5,  // 30: nico.provider.v1.NicoNetworkingService.GetSubnets:input_type -> nico.provider.v1.GetSubnetsRequest
 	8,  // 31: nico.provider.v1.NicoComputeService.GetInstanceByID:input_type -> nico.provider.v1.GetInstanceByIDRequest
@@ -2797,17 +2797,17 @@ var file_provider_v1_services_proto_depIdxs = []int32{
 	14, // 33: nico.provider.v1.NicoSwitchService.ListSwitches:input_type -> nico.provider.v1.ListSwitchesRequest
 	16, // 34: nico.provider.v1.NicoSwitchService.GetSwitch:input_type -> nico.provider.v1.GetSwitchRequest
 	20, // 35: nico.provider.v1.NicoSwitchService.GetSwitchRoutingConfig:input_type -> nico.provider.v1.GetSwitchRoutingConfigRequest
-	28, // 36: nico.provider.v1.NicoSwitchService.ListSwitchNeighbors:input_type -> nico.provider.v1.ListSwitchNeighborsRequest
-	32, // 37: nico.provider.v1.NicoSwitchService.ReportSwitchNeighbors:input_type -> nico.provider.v1.ReportSwitchNeighborsRequest
+	28, // 36: nico.provider.v1.NicoSwitchService.ListExpectedNeighbors:input_type -> nico.provider.v1.ListExpectedNeighborsRequest
+	32, // 37: nico.provider.v1.NicoSwitchService.ReportObservedNeighbors:input_type -> nico.provider.v1.ReportObservedNeighborsRequest
 	3,  // 38: nico.provider.v1.NicoNetworkingService.GetVpcByID:output_type -> nico.provider.v1.VpcResponse
 	6,  // 39: nico.provider.v1.NicoNetworkingService.GetSubnets:output_type -> nico.provider.v1.SubnetListResponse
 	9,  // 40: nico.provider.v1.NicoComputeService.GetInstanceByID:output_type -> nico.provider.v1.InstanceResponse
 	12, // 41: nico.provider.v1.NicoComputeService.GetMachineByID:output_type -> nico.provider.v1.MachineResponse
 	15, // 42: nico.provider.v1.NicoSwitchService.ListSwitches:output_type -> nico.provider.v1.ListSwitchesResponse
-	17, // 43: nico.provider.v1.NicoSwitchService.GetSwitch:output_type -> nico.provider.v1.GetSwitchResponse
+	17, // 43: nico.provider.v1.NicoSwitchService.GetSwitch:output_type -> nico.provider.v1.SwitchResponse
 	21, // 44: nico.provider.v1.NicoSwitchService.GetSwitchRoutingConfig:output_type -> nico.provider.v1.SwitchRoutingConfig
-	29, // 45: nico.provider.v1.NicoSwitchService.ListSwitchNeighbors:output_type -> nico.provider.v1.ListSwitchNeighborsResponse
-	33, // 46: nico.provider.v1.NicoSwitchService.ReportSwitchNeighbors:output_type -> nico.provider.v1.ReportSwitchNeighborsResponse
+	29, // 45: nico.provider.v1.NicoSwitchService.ListExpectedNeighbors:output_type -> nico.provider.v1.ListExpectedNeighborsResponse
+	33, // 46: nico.provider.v1.NicoSwitchService.ReportObservedNeighbors:output_type -> nico.provider.v1.ReportObservedNeighborsResponse
 	38, // [38:47] is the sub-list for method output_type
 	29, // [29:38] is the sub-list for method input_type
 	29, // [29:29] is the sub-list for extension type_name

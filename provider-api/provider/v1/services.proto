@@ -165,22 +165,22 @@ service NicoSwitchService {
   rpc ListSwitches(ListSwitchesRequest) returns (ListSwitchesResponse);
 
   // GetSwitch returns a single switch by its UUID.
-  rpc GetSwitch(GetSwitchRequest) returns (GetSwitchResponse);
+  rpc GetSwitch(GetSwitchRequest) returns (SwitchResponse);
 
   // GetSwitchRoutingConfig returns the intended routing configuration for a
   // switch.  Fields that NICo does not yet persist are returned as empty/zero
   // values; see the field-level comments for the current storage status.
   rpc GetSwitchRoutingConfig(GetSwitchRoutingConfigRequest) returns (SwitchRoutingConfig);
 
-  // ListSwitchNeighbors returns the expected (topology-model) cable neighbors
+  // ListExpectedNeighbors returns the expected (topology-model) cable neighbors
   // for each port of a switch, as recorded by the operator in NICo.
-  rpc ListSwitchNeighbors(ListSwitchNeighborsRequest) returns (ListSwitchNeighborsResponse);
+  rpc ListExpectedNeighbors(ListExpectedNeighborsRequest) returns (ListExpectedNeighborsResponse);
 
-  // ReportSwitchNeighbors allows a provider to write back observed LLDP
+  // ReportObservedNeighbors allows a provider to write back observed LLDP
   // neighbors after a live discovery sweep.  NICo stores these as the
   // "observed" side of cable validation and fires a
   // "switch/post-report-neighbors" async hook so other providers can react.
-  rpc ReportSwitchNeighbors(ReportSwitchNeighborsRequest) returns (ReportSwitchNeighborsResponse);
+  rpc ReportObservedNeighbors(ReportObservedNeighborsRequest) returns (ReportObservedNeighborsResponse);
 }
 
 // ---------- Switch inventory messages ----------
@@ -206,7 +206,7 @@ message GetSwitchRequest {
   string id = 1;
 }
 
-message GetSwitchResponse {
+message SwitchResponse {
   NicoSwitch switch = 1;
 }
 
@@ -402,11 +402,11 @@ message L3Vni {
 
 // ---------- Cable / neighbor messages ----------
 
-message ListSwitchNeighborsRequest {
+message ListExpectedNeighborsRequest {
   string switch_id = 1;
 }
 
-message ListSwitchNeighborsResponse {
+message ListExpectedNeighborsResponse {
   // expected_neighbors: topology-model view from NICo's cabling records.
   repeated CableLink expected_neighbors = 1;
 
@@ -440,21 +440,21 @@ message CableEndpoint {
 
 // ---------- Neighbor write-back messages ----------
 
-// ReportSwitchNeighborsRequest carries observed LLDP neighbors from a provider
-// back to NICo.  NICo stores these, diffs against expected topology, and fires
-// a "switch/post-report-neighbors" async hook with the diff result.
+// ReportObservedNeighborsRequest carries observed LLDP neighbors from a
+// provider back to NICo.  NICo stores these, diffs against expected topology,
+// and fires a "switch/post-report-neighbors" async hook with the diff result.
 //
 // Rationale: the provider sidecar is the only component with network access to
 // the switches; NICo core cannot SSH/LLDP-poll them directly.  The write-back
 // closes the cable-validation loop without requiring NICo to implement switch
 // access itself.
-message ReportSwitchNeighborsRequest {
+message ReportObservedNeighborsRequest {
   string switch_id = 1;
   repeated CableLink observed_neighbors = 2;
   google.protobuf.Timestamp observed_at = 3;
 }
 
-message ReportSwitchNeighborsResponse {
+message ReportObservedNeighborsResponse {
   // diff_summary: human-readable account of what matched and what diverged.
   string diff_summary = 1;
 

@@ -44,6 +44,7 @@ const (
 	NicoProvider_GetHookRegistrations_FullMethodName = "/nico.provider.v1.NicoProvider/GetHookRegistrations"
 	NicoProvider_HandleSyncHook_FullMethodName       = "/nico.provider.v1.NicoProvider/HandleSyncHook"
 	NicoProvider_GetOpenAPIFragment_FullMethodName   = "/nico.provider.v1.NicoProvider/GetOpenAPIFragment"
+	NicoProvider_GetResourceTypes_FullMethodName     = "/nico.provider.v1.NicoProvider/GetResourceTypes"
 )
 
 // NicoProviderClient is the client API for NicoProvider service.
@@ -69,7 +70,16 @@ type NicoProviderClient interface {
 	// HandleSyncHook invokes a synchronous hook handler in the provider.
 	HandleSyncHook(ctx context.Context, in *HookEvent, opts ...grpc.CallOption) (*HookResult, error)
 	// GetOpenAPIFragment returns the provider's OpenAPI spec fragment.
+	// Actions declared in GetResourceTypes SHOULD also appear here so that
+	// NICo's OpenAPI aggregation and the UI sidebar stay consistent.
 	GetOpenAPIFragment(ctx context.Context, in *GetOpenAPIFragmentRequest, opts ...grpc.CallOption) (*OpenAPIFragment, error)
+	// GetResourceTypes returns the resource types and actions this provider
+	// contributes to NICo's dynamic UI.  NICo calls this once after Init succeeds
+	// and caches the result; providers signal changes by restarting.
+	// The sidebar renders one nav entry per registered resource type, linking to
+	// {api_prefix}/ui/.  The provider is responsible for serving complete HTML
+	// pages at those paths via HandleRequest — NICo core does not template them.
+	GetResourceTypes(ctx context.Context, in *GetResourceTypesRequest, opts ...grpc.CallOption) (*GetResourceTypesResponse, error)
 }
 
 type nicoProviderClient struct {
@@ -170,6 +180,16 @@ func (c *nicoProviderClient) GetOpenAPIFragment(ctx context.Context, in *GetOpen
 	return out, nil
 }
 
+func (c *nicoProviderClient) GetResourceTypes(ctx context.Context, in *GetResourceTypesRequest, opts ...grpc.CallOption) (*GetResourceTypesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetResourceTypesResponse)
+	err := c.cc.Invoke(ctx, NicoProvider_GetResourceTypes_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NicoProviderServer is the server API for NicoProvider service.
 // All implementations must embed UnimplementedNicoProviderServer
 // for forward compatibility.
@@ -193,7 +213,16 @@ type NicoProviderServer interface {
 	// HandleSyncHook invokes a synchronous hook handler in the provider.
 	HandleSyncHook(context.Context, *HookEvent) (*HookResult, error)
 	// GetOpenAPIFragment returns the provider's OpenAPI spec fragment.
+	// Actions declared in GetResourceTypes SHOULD also appear here so that
+	// NICo's OpenAPI aggregation and the UI sidebar stay consistent.
 	GetOpenAPIFragment(context.Context, *GetOpenAPIFragmentRequest) (*OpenAPIFragment, error)
+	// GetResourceTypes returns the resource types and actions this provider
+	// contributes to NICo's dynamic UI.  NICo calls this once after Init succeeds
+	// and caches the result; providers signal changes by restarting.
+	// The sidebar renders one nav entry per registered resource type, linking to
+	// {api_prefix}/ui/.  The provider is responsible for serving complete HTML
+	// pages at those paths via HandleRequest — NICo core does not template them.
+	GetResourceTypes(context.Context, *GetResourceTypesRequest) (*GetResourceTypesResponse, error)
 	mustEmbedUnimplementedNicoProviderServer()
 }
 
@@ -230,6 +259,9 @@ func (UnimplementedNicoProviderServer) HandleSyncHook(context.Context, *HookEven
 }
 func (UnimplementedNicoProviderServer) GetOpenAPIFragment(context.Context, *GetOpenAPIFragmentRequest) (*OpenAPIFragment, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetOpenAPIFragment not implemented")
+}
+func (UnimplementedNicoProviderServer) GetResourceTypes(context.Context, *GetResourceTypesRequest) (*GetResourceTypesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetResourceTypes not implemented")
 }
 func (UnimplementedNicoProviderServer) mustEmbedUnimplementedNicoProviderServer() {}
 func (UnimplementedNicoProviderServer) testEmbeddedByValue()                      {}
@@ -414,6 +446,24 @@ func _NicoProvider_GetOpenAPIFragment_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NicoProvider_GetResourceTypes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetResourceTypesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NicoProviderServer).GetResourceTypes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NicoProvider_GetResourceTypes_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NicoProviderServer).GetResourceTypes(ctx, req.(*GetResourceTypesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NicoProvider_ServiceDesc is the grpc.ServiceDesc for NicoProvider service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -456,6 +506,10 @@ var NicoProvider_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetOpenAPIFragment",
 			Handler:    _NicoProvider_GetOpenAPIFragment_Handler,
+		},
+		{
+			MethodName: "GetResourceTypes",
+			Handler:    _NicoProvider_GetResourceTypes_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

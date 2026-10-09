@@ -237,6 +237,17 @@ func (x *ProviderInfo) GetDependencies() []string {
 }
 
 // InitRequest carries core runtime context to the provider.
+//
+// Well-known service_endpoints keys:
+//
+//	"networking" — NicoNetworkingService gRPC address
+//	"compute"    — NicoComputeService gRPC address
+//	"switch"     — NicoSwitchService gRPC address
+//
+// Well-known config keys:
+//
+//	"site_ids" — comma-separated UUIDs of sites this provider manages;
+//	             used by NicoSwitchService to scope ListSwitches results.
 type InitRequest struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	TemporalEndpoint  string                 `protobuf:"bytes,1,opt,name=temporal_endpoint,json=temporalEndpoint,proto3" json:"temporal_endpoint,omitempty"`
@@ -1192,6 +1203,255 @@ func (x *OpenAPIFragment) GetSpecYaml() []byte {
 	return nil
 }
 
+// GetResourceTypesRequest is an empty request for GetResourceTypes.
+type GetResourceTypesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetResourceTypesRequest) Reset() {
+	*x = GetResourceTypesRequest{}
+	mi := &file_provider_v1_provider_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetResourceTypesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetResourceTypesRequest) ProtoMessage() {}
+
+func (x *GetResourceTypesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_provider_v1_provider_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetResourceTypesRequest.ProtoReflect.Descriptor instead.
+func (*GetResourceTypesRequest) Descriptor() ([]byte, []int) {
+	return file_provider_v1_provider_proto_rawDescGZIP(), []int{20}
+}
+
+// GetResourceTypesResponse lists the resource types this provider contributes.
+type GetResourceTypesResponse struct {
+	state         protoimpl.MessageState    `protogen:"open.v1"`
+	ResourceTypes []*ResourceTypeDescriptor `protobuf:"bytes,1,rep,name=resource_types,json=resourceTypes,proto3" json:"resource_types,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetResourceTypesResponse) Reset() {
+	*x = GetResourceTypesResponse{}
+	mi := &file_provider_v1_provider_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetResourceTypesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetResourceTypesResponse) ProtoMessage() {}
+
+func (x *GetResourceTypesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_provider_v1_provider_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetResourceTypesResponse.ProtoReflect.Descriptor instead.
+func (*GetResourceTypesResponse) Descriptor() ([]byte, []int) {
+	return file_provider_v1_provider_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *GetResourceTypesResponse) GetResourceTypes() []*ResourceTypeDescriptor {
+	if x != nil {
+		return x.ResourceTypes
+	}
+	return nil
+}
+
+// ResourceTypeDescriptor describes a resource type that a provider contributes
+// to NICo's dynamic UI.  NICo renders one sidebar nav entry per entry and
+// routes /org/:orgName/:apiName/{api_prefix}/ui/* to the provider's
+// HandleRequest RPC.
+//
+// Actions declared here SHOULD also appear in the OpenAPI fragment returned by
+// GetOpenAPIFragment so that the sidebar and the API spec stay consistent.
+type ResourceTypeDescriptor struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// name is the singular resource name shown in UI labels, e.g. "switch".
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// plural is the plural form used for list pages, e.g. "switches".
+	Plural string `protobuf:"bytes,2,opt,name=plural,proto3" json:"plural,omitempty"`
+	// api_prefix is the provider-served HTTP prefix relative to the provider
+	// route group, e.g. "/provider/switch-config".  NICo proxies requests whose
+	// path begins with this prefix to HandleRequest.
+	ApiPrefix string `protobuf:"bytes,3,opt,name=api_prefix,json=apiPrefix,proto3" json:"api_prefix,omitempty"`
+	// actions lists the operator-visible actions for this resource type.
+	Actions       []*ActionDescriptor `protobuf:"bytes,4,rep,name=actions,proto3" json:"actions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResourceTypeDescriptor) Reset() {
+	*x = ResourceTypeDescriptor{}
+	mi := &file_provider_v1_provider_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResourceTypeDescriptor) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResourceTypeDescriptor) ProtoMessage() {}
+
+func (x *ResourceTypeDescriptor) ProtoReflect() protoreflect.Message {
+	mi := &file_provider_v1_provider_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResourceTypeDescriptor.ProtoReflect.Descriptor instead.
+func (*ResourceTypeDescriptor) Descriptor() ([]byte, []int) {
+	return file_provider_v1_provider_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *ResourceTypeDescriptor) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *ResourceTypeDescriptor) GetPlural() string {
+	if x != nil {
+		return x.Plural
+	}
+	return ""
+}
+
+func (x *ResourceTypeDescriptor) GetApiPrefix() string {
+	if x != nil {
+		return x.ApiPrefix
+	}
+	return ""
+}
+
+func (x *ResourceTypeDescriptor) GetActions() []*ActionDescriptor {
+	if x != nil {
+		return x.Actions
+	}
+	return nil
+}
+
+// ActionDescriptor describes one operator-visible action for a resource type.
+// NICo renders these as buttons or menu items on resource detail pages.
+type ActionDescriptor struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// name is the machine-readable action identifier, e.g. "push-config".
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// label is the human-readable button text, e.g. "Push Config".
+	Label string `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	// method is the HTTP method: "GET" or "POST".
+	Method string `protobuf:"bytes,3,opt,name=method,proto3" json:"method,omitempty"`
+	// path is the action endpoint relative to api_prefix, e.g.
+	// "/resources/{id}/actions/push-config".  The placeholder {id} is replaced
+	// with the resource UUID by the UI.
+	Path string `protobuf:"bytes,4,opt,name=path,proto3" json:"path,omitempty"`
+	// requires_confirmation controls whether NICo prompts the operator before
+	// submitting the request.
+	RequiresConfirmation bool `protobuf:"varint,5,opt,name=requires_confirmation,json=requiresConfirmation,proto3" json:"requires_confirmation,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *ActionDescriptor) Reset() {
+	*x = ActionDescriptor{}
+	mi := &file_provider_v1_provider_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ActionDescriptor) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ActionDescriptor) ProtoMessage() {}
+
+func (x *ActionDescriptor) ProtoReflect() protoreflect.Message {
+	mi := &file_provider_v1_provider_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ActionDescriptor.ProtoReflect.Descriptor instead.
+func (*ActionDescriptor) Descriptor() ([]byte, []int) {
+	return file_provider_v1_provider_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *ActionDescriptor) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *ActionDescriptor) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *ActionDescriptor) GetMethod() string {
+	if x != nil {
+		return x.Method
+	}
+	return ""
+}
+
+func (x *ActionDescriptor) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *ActionDescriptor) GetRequiresConfirmation() bool {
+	if x != nil {
+		return x.RequiresConfirmation
+	}
+	return false
+}
+
 var File_provider_v1_provider_proto protoreflect.FileDescriptor
 
 const file_provider_v1_provider_proto_rawDesc = "" +
@@ -1285,7 +1545,22 @@ const file_provider_v1_provider_proto_rawDesc = "" +
 	"\rerror_message\x18\x02 \x01(\tR\ferrorMessage\"\x1b\n" +
 	"\x19GetOpenAPIFragmentRequest\".\n" +
 	"\x0fOpenAPIFragment\x12\x1b\n" +
-	"\tspec_yaml\x18\x01 \x01(\fR\bspecYaml2\x91\x06\n" +
+	"\tspec_yaml\x18\x01 \x01(\fR\bspecYaml\"\x19\n" +
+	"\x17GetResourceTypesRequest\"k\n" +
+	"\x18GetResourceTypesResponse\x12O\n" +
+	"\x0eresource_types\x18\x01 \x03(\v2(.nico.provider.v1.ResourceTypeDescriptorR\rresourceTypes\"\xa1\x01\n" +
+	"\x16ResourceTypeDescriptor\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
+	"\x06plural\x18\x02 \x01(\tR\x06plural\x12\x1d\n" +
+	"\n" +
+	"api_prefix\x18\x03 \x01(\tR\tapiPrefix\x12<\n" +
+	"\aactions\x18\x04 \x03(\v2\".nico.provider.v1.ActionDescriptorR\aactions\"\x9d\x01\n" +
+	"\x10ActionDescriptor\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x12\x16\n" +
+	"\x06method\x18\x03 \x01(\tR\x06method\x12\x12\n" +
+	"\x04path\x18\x04 \x01(\tR\x04path\x123\n" +
+	"\x15requires_confirmation\x18\x05 \x01(\bR\x14requiresConfirmation2\xfc\x06\n" +
 	"\fNicoProvider\x12K\n" +
 	"\aGetInfo\x12 .nico.provider.v1.GetInfoRequest\x1a\x1e.nico.provider.v1.ProviderInfo\x12E\n" +
 	"\x04Init\x12\x1d.nico.provider.v1.InitRequest\x1a\x1e.nico.provider.v1.InitResponse\x12Q\n" +
@@ -1295,7 +1570,8 @@ const file_provider_v1_provider_proto_rawDesc = "" +
 	"\rHandleRequest\x12\x1d.nico.provider.v1.HTTPRequest\x1a\x1e.nico.provider.v1.HTTPResponse\x12m\n" +
 	"\x14GetHookRegistrations\x12-.nico.provider.v1.GetHookRegistrationsRequest\x1a&.nico.provider.v1.HookRegistrationList\x12K\n" +
 	"\x0eHandleSyncHook\x12\x1b.nico.provider.v1.HookEvent\x1a\x1c.nico.provider.v1.HookResult\x12d\n" +
-	"\x12GetOpenAPIFragment\x12+.nico.provider.v1.GetOpenAPIFragmentRequest\x1a!.nico.provider.v1.OpenAPIFragmentBHZFgithub.com/NVIDIA/infra-controller/provider-api/provider/v1;providerv1b\x06proto3"
+	"\x12GetOpenAPIFragment\x12+.nico.provider.v1.GetOpenAPIFragmentRequest\x1a!.nico.provider.v1.OpenAPIFragment\x12i\n" +
+	"\x10GetResourceTypes\x12).nico.provider.v1.GetResourceTypesRequest\x1a*.nico.provider.v1.GetResourceTypesResponseBHZFgithub.com/NVIDIA/infra-controller/provider-api/provider/v1;providerv1b\x06proto3"
 
 var (
 	file_provider_v1_provider_proto_rawDescOnce sync.Once
@@ -1310,7 +1586,7 @@ func file_provider_v1_provider_proto_rawDescGZIP() []byte {
 }
 
 var file_provider_v1_provider_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_provider_v1_provider_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
+var file_provider_v1_provider_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
 var file_provider_v1_provider_proto_goTypes = []any{
 	(HealthCheckResponse_ServingStatus)(0), // 0: nico.provider.v1.HealthCheckResponse.ServingStatus
 	(HookRegistration_Type)(0),             // 1: nico.provider.v1.HookRegistration.Type
@@ -1334,47 +1610,55 @@ var file_provider_v1_provider_proto_goTypes = []any{
 	(*HookResult)(nil),                     // 19: nico.provider.v1.HookResult
 	(*GetOpenAPIFragmentRequest)(nil),      // 20: nico.provider.v1.GetOpenAPIFragmentRequest
 	(*OpenAPIFragment)(nil),                // 21: nico.provider.v1.OpenAPIFragment
-	nil,                                    // 22: nico.provider.v1.InitRequest.ConfigEntry
-	nil,                                    // 23: nico.provider.v1.InitRequest.ServiceEndpointsEntry
-	nil,                                    // 24: nico.provider.v1.HTTPRequest.HeadersEntry
-	nil,                                    // 25: nico.provider.v1.HTTPRequest.QueryParamsEntry
-	nil,                                    // 26: nico.provider.v1.HTTPRequest.PathParamsEntry
-	nil,                                    // 27: nico.provider.v1.HTTPResponse.HeadersEntry
+	(*GetResourceTypesRequest)(nil),        // 22: nico.provider.v1.GetResourceTypesRequest
+	(*GetResourceTypesResponse)(nil),       // 23: nico.provider.v1.GetResourceTypesResponse
+	(*ResourceTypeDescriptor)(nil),         // 24: nico.provider.v1.ResourceTypeDescriptor
+	(*ActionDescriptor)(nil),               // 25: nico.provider.v1.ActionDescriptor
+	nil,                                    // 26: nico.provider.v1.InitRequest.ConfigEntry
+	nil,                                    // 27: nico.provider.v1.InitRequest.ServiceEndpointsEntry
+	nil,                                    // 28: nico.provider.v1.HTTPRequest.HeadersEntry
+	nil,                                    // 29: nico.provider.v1.HTTPRequest.QueryParamsEntry
+	nil,                                    // 30: nico.provider.v1.HTTPRequest.PathParamsEntry
+	nil,                                    // 31: nico.provider.v1.HTTPResponse.HeadersEntry
 }
 var file_provider_v1_provider_proto_depIdxs = []int32{
-	22, // 0: nico.provider.v1.InitRequest.config:type_name -> nico.provider.v1.InitRequest.ConfigEntry
-	23, // 1: nico.provider.v1.InitRequest.service_endpoints:type_name -> nico.provider.v1.InitRequest.ServiceEndpointsEntry
+	26, // 0: nico.provider.v1.InitRequest.config:type_name -> nico.provider.v1.InitRequest.ConfigEntry
+	27, // 1: nico.provider.v1.InitRequest.service_endpoints:type_name -> nico.provider.v1.InitRequest.ServiceEndpointsEntry
 	0,  // 2: nico.provider.v1.HealthCheckResponse.status:type_name -> nico.provider.v1.HealthCheckResponse.ServingStatus
 	11, // 3: nico.provider.v1.RouteList.routes:type_name -> nico.provider.v1.Route
-	24, // 4: nico.provider.v1.HTTPRequest.headers:type_name -> nico.provider.v1.HTTPRequest.HeadersEntry
-	25, // 5: nico.provider.v1.HTTPRequest.query_params:type_name -> nico.provider.v1.HTTPRequest.QueryParamsEntry
-	26, // 6: nico.provider.v1.HTTPRequest.path_params:type_name -> nico.provider.v1.HTTPRequest.PathParamsEntry
-	27, // 7: nico.provider.v1.HTTPResponse.headers:type_name -> nico.provider.v1.HTTPResponse.HeadersEntry
+	28, // 4: nico.provider.v1.HTTPRequest.headers:type_name -> nico.provider.v1.HTTPRequest.HeadersEntry
+	29, // 5: nico.provider.v1.HTTPRequest.query_params:type_name -> nico.provider.v1.HTTPRequest.QueryParamsEntry
+	30, // 6: nico.provider.v1.HTTPRequest.path_params:type_name -> nico.provider.v1.HTTPRequest.PathParamsEntry
+	31, // 7: nico.provider.v1.HTTPResponse.headers:type_name -> nico.provider.v1.HTTPResponse.HeadersEntry
 	1,  // 8: nico.provider.v1.HookRegistration.type:type_name -> nico.provider.v1.HookRegistration.Type
 	16, // 9: nico.provider.v1.HookRegistrationList.registrations:type_name -> nico.provider.v1.HookRegistration
-	2,  // 10: nico.provider.v1.NicoProvider.GetInfo:input_type -> nico.provider.v1.GetInfoRequest
-	4,  // 11: nico.provider.v1.NicoProvider.Init:input_type -> nico.provider.v1.InitRequest
-	6,  // 12: nico.provider.v1.NicoProvider.Shutdown:input_type -> nico.provider.v1.ShutdownRequest
-	8,  // 13: nico.provider.v1.NicoProvider.HealthCheck:input_type -> nico.provider.v1.HealthCheckRequest
-	10, // 14: nico.provider.v1.NicoProvider.GetRoutes:input_type -> nico.provider.v1.GetRoutesRequest
-	13, // 15: nico.provider.v1.NicoProvider.HandleRequest:input_type -> nico.provider.v1.HTTPRequest
-	15, // 16: nico.provider.v1.NicoProvider.GetHookRegistrations:input_type -> nico.provider.v1.GetHookRegistrationsRequest
-	18, // 17: nico.provider.v1.NicoProvider.HandleSyncHook:input_type -> nico.provider.v1.HookEvent
-	20, // 18: nico.provider.v1.NicoProvider.GetOpenAPIFragment:input_type -> nico.provider.v1.GetOpenAPIFragmentRequest
-	3,  // 19: nico.provider.v1.NicoProvider.GetInfo:output_type -> nico.provider.v1.ProviderInfo
-	5,  // 20: nico.provider.v1.NicoProvider.Init:output_type -> nico.provider.v1.InitResponse
-	7,  // 21: nico.provider.v1.NicoProvider.Shutdown:output_type -> nico.provider.v1.ShutdownResponse
-	9,  // 22: nico.provider.v1.NicoProvider.HealthCheck:output_type -> nico.provider.v1.HealthCheckResponse
-	12, // 23: nico.provider.v1.NicoProvider.GetRoutes:output_type -> nico.provider.v1.RouteList
-	14, // 24: nico.provider.v1.NicoProvider.HandleRequest:output_type -> nico.provider.v1.HTTPResponse
-	17, // 25: nico.provider.v1.NicoProvider.GetHookRegistrations:output_type -> nico.provider.v1.HookRegistrationList
-	19, // 26: nico.provider.v1.NicoProvider.HandleSyncHook:output_type -> nico.provider.v1.HookResult
-	21, // 27: nico.provider.v1.NicoProvider.GetOpenAPIFragment:output_type -> nico.provider.v1.OpenAPIFragment
-	19, // [19:28] is the sub-list for method output_type
-	10, // [10:19] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	24, // 10: nico.provider.v1.GetResourceTypesResponse.resource_types:type_name -> nico.provider.v1.ResourceTypeDescriptor
+	25, // 11: nico.provider.v1.ResourceTypeDescriptor.actions:type_name -> nico.provider.v1.ActionDescriptor
+	2,  // 12: nico.provider.v1.NicoProvider.GetInfo:input_type -> nico.provider.v1.GetInfoRequest
+	4,  // 13: nico.provider.v1.NicoProvider.Init:input_type -> nico.provider.v1.InitRequest
+	6,  // 14: nico.provider.v1.NicoProvider.Shutdown:input_type -> nico.provider.v1.ShutdownRequest
+	8,  // 15: nico.provider.v1.NicoProvider.HealthCheck:input_type -> nico.provider.v1.HealthCheckRequest
+	10, // 16: nico.provider.v1.NicoProvider.GetRoutes:input_type -> nico.provider.v1.GetRoutesRequest
+	13, // 17: nico.provider.v1.NicoProvider.HandleRequest:input_type -> nico.provider.v1.HTTPRequest
+	15, // 18: nico.provider.v1.NicoProvider.GetHookRegistrations:input_type -> nico.provider.v1.GetHookRegistrationsRequest
+	18, // 19: nico.provider.v1.NicoProvider.HandleSyncHook:input_type -> nico.provider.v1.HookEvent
+	20, // 20: nico.provider.v1.NicoProvider.GetOpenAPIFragment:input_type -> nico.provider.v1.GetOpenAPIFragmentRequest
+	22, // 21: nico.provider.v1.NicoProvider.GetResourceTypes:input_type -> nico.provider.v1.GetResourceTypesRequest
+	3,  // 22: nico.provider.v1.NicoProvider.GetInfo:output_type -> nico.provider.v1.ProviderInfo
+	5,  // 23: nico.provider.v1.NicoProvider.Init:output_type -> nico.provider.v1.InitResponse
+	7,  // 24: nico.provider.v1.NicoProvider.Shutdown:output_type -> nico.provider.v1.ShutdownResponse
+	9,  // 25: nico.provider.v1.NicoProvider.HealthCheck:output_type -> nico.provider.v1.HealthCheckResponse
+	12, // 26: nico.provider.v1.NicoProvider.GetRoutes:output_type -> nico.provider.v1.RouteList
+	14, // 27: nico.provider.v1.NicoProvider.HandleRequest:output_type -> nico.provider.v1.HTTPResponse
+	17, // 28: nico.provider.v1.NicoProvider.GetHookRegistrations:output_type -> nico.provider.v1.HookRegistrationList
+	19, // 29: nico.provider.v1.NicoProvider.HandleSyncHook:output_type -> nico.provider.v1.HookResult
+	21, // 30: nico.provider.v1.NicoProvider.GetOpenAPIFragment:output_type -> nico.provider.v1.OpenAPIFragment
+	23, // 31: nico.provider.v1.NicoProvider.GetResourceTypes:output_type -> nico.provider.v1.GetResourceTypesResponse
+	22, // [22:32] is the sub-list for method output_type
+	12, // [12:22] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_provider_v1_provider_proto_init() }
@@ -1388,7 +1672,7 @@ func file_provider_v1_provider_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_provider_v1_provider_proto_rawDesc), len(file_provider_v1_provider_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   26,
+			NumMessages:   30,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
