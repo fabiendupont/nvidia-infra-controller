@@ -32,6 +32,7 @@ COPY rest-api/sdk/standard/go.mod ./sdk/standard/
 # GOWORK=off disables workspace mode so the replace directive is used directly.
 COPY provider-api/ ../provider-api/
 COPY providers/provisioner-metal3/ ../providers/provisioner-metal3/
+COPY providers/switch-config/ ../providers/switch-config/
 ENV GOWORK=off
 ENV GONOSUMDB=github.com/NVIDIA/infra-controller/*
 # Download dependencies
