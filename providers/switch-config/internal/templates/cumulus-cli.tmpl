@@ -1,0 +1,13 @@
+# NICo-generated Cumulus Linux configuration
+# Switch: {{ .Switch.Name }} ({{ .Switch.Id }})
+# Site:   {{ .SiteID }}
+# DO NOT EDIT — managed by nico-switch-config provider
+
+auto lo
+iface lo inet loopback
+  address {{ .Switch.ManagementIp }}/32
+
+{{ range .RoutingConfig.Vrfs }}
+vrf {{ .Name }}
+  vni {{ .L3Vni }}
+{{ end }}

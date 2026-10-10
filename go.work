@@ -17,6 +17,7 @@ use (
 	./providers/health
 	./providers/nvswitch
 	./providers/showback
+	./providers/switch-config
 )
 
 replace (
