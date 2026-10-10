@@ -63,6 +63,7 @@ func NewServiceServer(db *cdb.Session, listenAddr string) (*ServiceServer, error
 	providerv1.RegisterNicoComputeServiceServer(grpcServer, &computeServiceServer{
 		svc: computesvc.New(db),
 	})
+	providerv1.RegisterNicoSwitchServiceServer(grpcServer, &switchServiceServer{db: db})
 
 	log.Info().Str("addr", lis.Addr().String()).Msg("cross-domain service server ready")
 

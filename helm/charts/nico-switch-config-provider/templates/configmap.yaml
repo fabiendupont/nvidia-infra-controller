@@ -1,0 +1,31 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# Discovery ConfigMap: NICo API watches for the nico.nvidia.com/provider label
+# and reads the provider-address annotation to connect over gRPC.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nico-switch-config-provider.name" . }}
+  namespace: {{ include "nico-switch-config-provider.namespace" . }}
+  labels:
+    {{- include "nico-switch-config-provider.labels" . | nindent 4 }}
+    nico.nvidia.com/provider: "true"
+  annotations:
+    nico.nvidia.com/provider-address: "{{ .Values.service.name }}.{{ include "nico-switch-config-provider.namespace" . }}.svc:{{ .Values.service.port }}"
+    nico.nvidia.com/provider-name: "nico-switch-config"
+    nico.nvidia.com/provider-version: "{{ .Chart.AppVersion }}"
+data:
+  {{- range $key, $val := .Values.envConfig }}
+  {{ $key }}: {{ $val | quote }}
+  {{- end }}
+  {{- if .Values.db.host }}
+  DB_HOST: {{ .Values.db.host | quote }}
+  DB_PORT: {{ .Values.db.port | quote }}
+  DB_NAME: {{ .Values.db.name | quote }}
+  DB_USER: {{ .Values.db.user | quote }}
+  {{- end }}
+  {{- if .Values.temporal.endpoint }}
+  TEMPORAL_ENDPOINT: {{ .Values.temporal.endpoint | quote }}
+  TEMPORAL_NAMESPACE: {{ .Values.temporal.namespace | quote }}
+  {{- end }}

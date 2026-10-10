@@ -44,8 +44,9 @@ type ExternalProvider struct {
 	routes      []*providerv1.Route
 	hooks       []SyncHook
 	reactions   []Reaction
-	specYAML    []byte
-	routePrefix string // parameterized group prefix, e.g. "/v2/org/:orgName/nico"
+	specYAML      []byte
+	routePrefix   string // parameterized group prefix, e.g. "/v2/org/:orgName/nico"
+	resourceTypes []*providerv1.ResourceTypeDescriptor
 }
 
 // Name returns the provider's name as reported by the sidecar.
@@ -103,6 +104,16 @@ func (p *ExternalProvider) Init(ctx ProviderContext) error {
 		log.Warn().Err(err).Str("provider", p.Name()).Msg("failed to fetch OpenAPI fragment")
 	} else {
 		p.specYAML = fragment.GetSpecYaml()
+	}
+
+	// Fetch resource types for dynamic UI composition (GetResourceTypes).
+	// Non-fatal: providers that have not implemented GetResourceTypes return
+	// an empty list via the UnimplementedNicoProviderServer default.
+	rtResp, err := p.client.GetResourceTypes(context.Background(), &providerv1.GetResourceTypesRequest{})
+	if err != nil {
+		log.Warn().Err(err).Str("provider", p.Name()).Msg("failed to fetch resource types")
+	} else {
+		p.resourceTypes = rtResp.GetResourceTypes()
 	}
 
 	log.Info().
@@ -235,6 +246,11 @@ func (p *ExternalProvider) RegisterRoutes(group *echo.Group) {
 // OpenAPIFragment returns the provider's OpenAPI spec fragment as YAML.
 func (p *ExternalProvider) OpenAPIFragment() []byte {
 	return p.specYAML
+}
+
+// ResourceTypes returns the resource type descriptors declared by this provider.
+func (p *ExternalProvider) ResourceTypes() []*providerv1.ResourceTypeDescriptor {
+	return p.resourceTypes
 }
 
 // HealthCheck calls the sidecar's HealthCheck RPC and returns its serving status.

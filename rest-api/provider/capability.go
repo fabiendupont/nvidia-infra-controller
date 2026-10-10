@@ -21,6 +21,7 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	providerv1 "github.com/NVIDIA/infra-controller/provider-api/provider/v1"
 )
 
 // CapabilityHandler handles GET /capabilities requests.
@@ -49,7 +50,18 @@ func (h *CapabilityHandler) Handle(c echo.Context) error {
 			}
 		}
 	}
+	// Collect resource types from all registered external providers.
+	var resourceTypes []*providerv1.ResourceTypeDescriptor
+	for _, name := range AllFeatures {
+		if p, ok := h.registry.FeatureProvider(name); ok {
+			if ep, ok := p.(*ExternalProvider); ok {
+				resourceTypes = append(resourceTypes, ep.ResourceTypes()...)
+			}
+		}
+	}
+
 	return c.JSON(http.StatusOK, map[string]interface{}{
-		"features": features,
+		"features":       features,
+		"resource_types": resourceTypes,
 	})
 }
