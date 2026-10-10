@@ -1,0 +1,45 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Dev-only Dockerfile for NICo Core (nico-api / carbide-api).
+# Uses a public Rust image — no NVIDIA internal build container required.
+# Build context: repo root (same as all other local Dockerfiles).
+# Build time is ~10 min cold; subsequent builds use Docker layer cache.
+
+ARG RUST_VERSION=1.97.1
+
+# ── builder ──────────────────────────────────────────────────────────────────
+FROM rust:${RUST_VERSION}-slim-bookworm AS builder
+
+RUN apt-get update && apt-get install -y \
+    pkg-config libssl-dev libpq-dev ca-certificates protobuf-compiler \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /repo
+
+# Copy workspace manifests first so Cargo can resolve the workspace.
+COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
+# Copy all crate source so the workspace dependency graph resolves.
+COPY crates/ crates/
+# ipxe-renderer crate embeds pxe/ipxe/local/embed.ipxe at build time.
+COPY pxe/ pxe/
+
+# Build release binary; --no-default-features disables TPM attestation
+# which requires a Linux TPM device and is not needed for Kind dev.
+RUN cargo build --package carbide-api --no-default-features --release \
+    && strip target/release/carbide-api
+
+# ── runtime ──────────────────────────────────────────────────────────────────
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y \
+    libssl3 libpq5 ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /repo/target/release/carbide-api /usr/local/bin/nico-api
+
+# TLS certs and config are injected at /etc/nico-core/ via volume mount.
+EXPOSE 1079 1080
+
+ENTRYPOINT ["/usr/local/bin/nico-api"]
+CMD ["run", "--config-path", "/etc/nico-core/config.toml"]

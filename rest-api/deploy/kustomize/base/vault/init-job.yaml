@@ -1,0 +1,54 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Seeds Vault with the BMC and UEFI credentials NICo Core expects.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vault-init
+  namespace: nico-rest
+spec:
+  backoffLimit: 5
+  template:
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        - name: wait-for-vault
+          image: curlimages/curl:latest
+          command:
+            - sh
+            - -c
+            - |
+              until curl -sf http://vault.nico-rest.svc:8200/v1/sys/health > /dev/null; do
+                echo "waiting for Vault..."; sleep 3
+              done
+      containers:
+        - name: seed
+          image: hashicorp/vault:1.20.2
+          env:
+            - name: VAULT_ADDR
+              value: http://vault.nico-rest.svc:8200
+            - name: VAULT_TOKEN
+              value: dev-root-token
+          command:
+            - sh
+            - -c
+            - |
+              vault secrets enable -path=secrets -version=2 kv || true
+              vault secrets enable -path=certs pki || true
+              vault write certs/root/generate/internal \
+                common_name=nico-dev.local ttl=87600h || true
+              vault write certs/config/urls \
+                issuing_certificates="http://vault.nico-rest.svc:8200/v1/pki/ca" \
+                crl_distribution_points="http://vault.nico-rest.svc:8200/v1/pki/crl" || true
+              vault write certs/roles/role \
+                allowed_domains=nico.local allow_subdomains=true max_ttl=72h \
+                require_cn=false \
+                "allowed_uri_sans=spiffe://nico.local/*" || true
+              echo '{"UsernamePassword":{"username":"root","password":"vault-password"}}' \
+                | vault kv put /secrets/machines/bmc/site/root -
+              echo '{"UsernamePassword":{"username":"root","password":"vault-password"}}' \
+                | vault kv put /secrets/machines/all_dpus/site_default/uefi-metadata-items/auth -
+              echo '{"UsernamePassword":{"username":"root","password":"vault-password"}}' \
+                | vault kv put /secrets/machines/all_hosts/site_default/uefi-metadata-items/auth -
+              echo "Vault seeded."

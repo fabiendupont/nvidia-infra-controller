@@ -396,18 +396,28 @@ KIND_CLUSTER_NAME := nico-rest-local
 KUSTOMIZE_OVERLAY := deploy/kustomize/overlays/local
 LOCAL_DOCKERFILE_DIR := docker/local
 
-# Set LOCAL_CORE=true to connect the site-agent to a locally-running nico-core
-# (started from the repo root via dev/mac-local-dev/run-nico-api.sh) instead of
-# the in-cluster mock-core.
+# KIND_CORE controls which NICo Core backend the Kind cluster uses:
+#   KIND_CORE=true  (default) — real in-cluster Core (Dockerfile.nico-core)
+#   KIND_CORE=mock            — in-cluster mock-core (Go stub, fast startup)
+#   KIND_CORE=local           — host process via LOCAL_CORE_HOST:LOCAL_CORE_PORT
 #
-# LOCAL_CORE_HOST must be reachable from inside the kind cluster nodes. On Docker
-# Desktop and colima, host.docker.internal resolves to both IPv6 and IPv4. Go's
-# dialer may prefer IPv6, which is unreachable from Kind pods, so the recipe
-# resolves it to IPv4 before patching the ConfigMap.
+# Set LOCAL_CORE=true as an alias for KIND_CORE=local (backward compat).
+KIND_CORE ?= true
 LOCAL_CORE ?=
 LOCAL_CORE_HOST ?= host.docker.internal
 LOCAL_CORE_PORT ?= 1079
 LOCAL_CORE_CERTS_DIR ?= ../dev/certs/localhost
+
+# Derived Core gRPC address for Helm/ConfigMap patching.
+ifeq ($(KIND_CORE),local)
+  CORE_GRPC_ADDRESS := $(LOCAL_CORE_HOST):$(LOCAL_CORE_PORT)
+else ifeq ($(LOCAL_CORE),true)
+  CORE_GRPC_ADDRESS := $(LOCAL_CORE_HOST):$(LOCAL_CORE_PORT)
+else ifeq ($(KIND_CORE),mock)
+  CORE_GRPC_ADDRESS := nico-rest-mock-core:11079
+else
+  CORE_GRPC_ADDRESS := nico-core.nico-rest.svc:1079
+endif
 
 # Recommended colima configuration for full stack with Temporal:
 #   colima start --cpu 8 --memory 8 --disk 100
@@ -418,8 +428,10 @@ docker-build-local:
 	docker build -t $(IMAGE_REGISTRY)/nico-rest-workflow:$(IMAGE_TAG) -f $(LOCAL_DOCKERFILE_DIR)/Dockerfile.nico-rest-workflow ..
 	docker build -t $(IMAGE_REGISTRY)/nico-rest-site-manager:$(IMAGE_TAG) -f $(LOCAL_DOCKERFILE_DIR)/Dockerfile.nico-rest-site-manager ..
 	docker build -t $(IMAGE_REGISTRY)/nico-rest-site-agent:$(IMAGE_TAG) -f $(LOCAL_DOCKERFILE_DIR)/Dockerfile.nico-rest-site-agent ..
-	@if [ "$(LOCAL_CORE)" != "true" ]; then \
+	@if [ "$(KIND_CORE)" = "mock" ]; then \
 		docker build -t $(IMAGE_REGISTRY)/nico-rest-mock-core:$(IMAGE_TAG) -f $(LOCAL_DOCKERFILE_DIR)/Dockerfile.nico-rest-mock-core .. ; \
+	elif [ "$(KIND_CORE)" != "local" ] && [ "$(LOCAL_CORE)" != "true" ]; then \
+		docker build -t $(IMAGE_REGISTRY)/nico-rest-core:$(IMAGE_TAG) -f $(LOCAL_DOCKERFILE_DIR)/Dockerfile.nico-core .. ; \
 	fi
 	docker build -t $(IMAGE_REGISTRY)/nico-rest-db:$(IMAGE_TAG) -f $(LOCAL_DOCKERFILE_DIR)/Dockerfile.nico-rest-db ..
 	docker build -t $(IMAGE_REGISTRY)/nico-rest-cert-manager:$(IMAGE_TAG) -f $(LOCAL_DOCKERFILE_DIR)/Dockerfile.nico-rest-cert-manager ..
@@ -444,8 +456,10 @@ kind-load:
 	kind load docker-image $(IMAGE_REGISTRY)/nico-rest-workflow:$(IMAGE_TAG) --name $(KIND_CLUSTER_NAME)
 	kind load docker-image $(IMAGE_REGISTRY)/nico-rest-site-manager:$(IMAGE_TAG) --name $(KIND_CLUSTER_NAME)
 	kind load docker-image $(IMAGE_REGISTRY)/nico-rest-site-agent:$(IMAGE_TAG) --name $(KIND_CLUSTER_NAME)
-	@if [ "$(LOCAL_CORE)" != "true" ]; then \
+	@if [ "$(KIND_CORE)" = "mock" ]; then \
 		kind load docker-image $(IMAGE_REGISTRY)/nico-rest-mock-core:$(IMAGE_TAG) --name $(KIND_CLUSTER_NAME) ; \
+	elif [ "$(KIND_CORE)" != "local" ] && [ "$(LOCAL_CORE)" != "true" ]; then \
+		kind load docker-image $(IMAGE_REGISTRY)/nico-rest-core:$(IMAGE_TAG) --name $(KIND_CLUSTER_NAME) ; \
 	fi
 	kind load docker-image $(IMAGE_REGISTRY)/nico-rest-db:$(IMAGE_TAG) --name $(KIND_CLUSTER_NAME)
 	kind load docker-image $(IMAGE_REGISTRY)/nico-rest-cert-manager:$(IMAGE_TAG) --name $(KIND_CLUSTER_NAME)
@@ -580,10 +594,18 @@ kind-reset-infra: docker-build-local
 	kubectl apply -k deploy/kustomize/base/keycloak
 	kubectl -n nico-rest rollout status deployment/keycloak --timeout=240s
 
-	@if [ "$(LOCAL_CORE)" != "true" ]; then \
-		echo "Setting up Nico Mock Core (dev only, not in Helm chart)..." ; \
+	@if [ "$(KIND_CORE)" = "mock" ]; then \
+		echo "Setting up Nico Mock Core..." ; \
 		kubectl apply -k deploy/kustomize/overlays/mock-core ; \
 		kubectl -n nico-rest rollout status deployment/nico-rest-mock-core --timeout=240s ; \
+	elif [ "$(KIND_CORE)" != "local" ] && [ "$(LOCAL_CORE)" != "true" ]; then \
+		echo "Deploying Vault and real NICo Core (KIND_CORE=true)..." ; \
+		kubectl apply -k deploy/kustomize/base/vault/ ; \
+		kubectl -n nico-rest rollout status deployment/vault --timeout=120s ; \
+		kubectl -n nico-rest wait --for=condition=complete job/vault-init --timeout=120s || true ; \
+		kubectl apply -k deploy/kustomize/overlays/core/ ; \
+		kubectl -n nico-rest wait --for=condition=complete job/nico-core-migrations --timeout=300s ; \
+		kubectl -n nico-rest rollout status deployment/nico-core --timeout=300s ; \
 	fi
 
 	@echo ""
@@ -724,8 +746,9 @@ helm-deploy-site-agent:
 	@echo "Installing site-agent chart (will CrashLoop until bootstrapped)..."
 	helm upgrade --install nico-rest-site-agent $(SITE_AGENT_CHART)/ \
 		--namespace nico-rest $(HELM_SET) \
-		$(if $(filter true,$(LOCAL_CORE)),--set certificate.enabled=false) \
-		$(if $(filter-out true,$(LOCAL_CORE)),--set envConfig.CORE_GRPC_ADDRESS=nico-rest-mock-core:11079 --set envConfig.CORE_GRPC_SEC_OPT=0) \
+		--set envConfig.CORE_GRPC_ADDRESS=$(CORE_GRPC_ADDRESS) \
+		$(if $(filter mock,$(KIND_CORE)),--set envConfig.CORE_GRPC_SEC_OPT=0) \
+		$(if $(filter true,$(LOCAL_CORE)),--set envConfig.CORE_GRPC_ADDRESS=$(CORE_GRPC_ADDRESS) --set certificate.enabled=false) \
 		--timeout 1m || true
 	@echo "Running site bootstrap (setup-local.sh site-agent)..."
 	./scripts/setup-local.sh site-agent

@@ -1,0 +1,44 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Dev-mode Vault: in-memory storage, no TLS, auto-unsealed.
+# Token is "dev-root-token". Not for production use.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vault
+  namespace: nico-rest
+  labels:
+    app.kubernetes.io/name: vault
+    app.kubernetes.io/component: secrets
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vault
+  template:
+    metadata:
+      labels:
+        app: vault
+    spec:
+      containers:
+        - name: vault
+          image: hashicorp/vault:1.20.2
+          args: ["server", "-dev"]
+          ports:
+            - containerPort: 8200
+              name: api
+          env:
+            - name: VAULT_DEV_ROOT_TOKEN_ID
+              value: dev-root-token
+            - name: VAULT_DEV_LISTEN_ADDRESS
+              value: "0.0.0.0:8200"
+          securityContext:
+            capabilities:
+              add: ["IPC_LOCK"]
+          readinessProbe:
+            httpGet:
+              path: /v1/sys/health
+              port: 8200
+            initialDelaySeconds: 3
+            periodSeconds: 5

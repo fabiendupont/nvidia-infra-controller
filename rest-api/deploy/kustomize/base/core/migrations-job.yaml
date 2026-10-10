@@ -1,0 +1,24 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Runs NICo Core DB migrations once before the Core Deployment starts.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nico-core-migrations
+  namespace: nico-rest
+  labels:
+    app.kubernetes.io/name: nico-core
+    app.kubernetes.io/component: migrations
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migrate
+          image: nico-core
+          args: ["migrate"]
+          env:
+            - name: DATABASE_URL
+              value: postgresql://postgres:admin@postgres-postgresql.nico-rest.svc:5432

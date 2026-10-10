@@ -1,0 +1,53 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nico-core-config
+  namespace: nico-rest
+data:
+  config.toml: |
+    listen = "[::]:1079"
+    listen_mode = "tls"
+    metrics_endpoint = "[::]:1080"
+    # postgres.postgres.svc = the PostgreSQL StatefulSet in the postgres namespace
+    database_url = "postgresql://nico:nico@postgres.postgres.svc:5432/nico"
+    asn = 4294967000
+    bypass_rbac = true
+    attestation_enabled = false
+    initial_domain_name = "local.forge"
+    initial_dpu_agent_upgrade_policy = "off"
+
+    # TLS for the gRPC listener — cert-manager issues these via nico-core-grpc-server-cert
+    [tls]
+    root_cafile_path       = "/etc/nico-core/ca.crt"
+    identity_pemfile_path  = "/etc/nico-core/tls.crt"
+    identity_keyfile_path  = "/etc/nico-core/tls.key"
+    admin_root_cafile_path = "/etc/nico-core/ca.crt"
+
+    # Permissive auth mode for dev — all clients accepted
+    [auth]
+    permissive_mode = true
+
+    [auth.trust]
+    spiffe_trust_domain       = "nico.local"
+    spiffe_service_base_paths = ["nico"]
+    spiffe_machine_base_path  = "machine"
+    additional_issuer_cns     = []
+
+    [pools.lo-ip]
+    type = "ipv4"
+    ranges = [{ start = "10.180.62.1", end = "10.180.62.62" }]
+
+    [pools.vlan-id]
+    type = "integer"
+    ranges = [{ start = "100", end = "501" }]
+
+    [pools.vni]
+    type = "integer"
+    ranges = [{ start = "1024500", end = "1024550" }]
+
+    [pools.vpc-vni]
+    type = "integer"
+    ranges = [{ start = "1000", end = "9999" }]
