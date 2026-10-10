@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: nico-rest
+
+resources:
+  - ../../base/core
+
+images:
+  - name: nico-core
+    newName: quay.io/fdupont-redhat/nico-core
+    newTag: latest

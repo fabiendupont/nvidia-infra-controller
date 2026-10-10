@@ -1,0 +1,91 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nico-core
+  namespace: nico-rest
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nico-core
+  template:
+    metadata:
+      labels:
+        app: nico-core
+    spec:
+      # Disable SA token mount so Core uses VAULT_TOKEN (env var) instead of
+      # Kubernetes service account auth, which requires Vault K8s auth setup.
+      # The Vault init job configures K8s auth; this flag is kept false for
+      # simplicity. If you prefer K8s auth, remove this and configure Vault.
+      automountServiceAccountToken: false
+      initContainers:
+        - name: wait-migrations
+          image: bitnami/kubectl:latest
+          command:
+            - sh
+            - -c
+            - |
+              until kubectl get job nico-core-migrations -n nico-rest \
+                --output=jsonpath='{.status.succeeded}' 2>/dev/null | grep -q "1"; do
+                echo "waiting for migrations job..."
+                sleep 5
+              done
+              echo "migrations complete"
+      containers:
+        - name: nico-core
+          image: nico-core
+          args: ["run", "--config-path", "/etc/nico-core/config.toml"]
+          ports:
+            - containerPort: 1079
+              name: grpc
+            - containerPort: 1080
+              name: metrics
+          env:
+            # Use env var for DATABASE_URL so sslmode=disable can be appended
+            # without modifying the TOML file.
+            - name: DATABASE_URL
+              value: "postgresql://nico:nico@postgres.postgres.svc:5432/nico"
+            # Disable Postgres TLS: in-cluster postgres does not have TLS enabled.
+            - name: DISABLE_TLS_ENFORCEMENT
+              value: "1"
+            # Vault configuration — token auth (no K8s SA auth)
+            - name: VAULT_ADDR
+              value: "http://vault.nico-rest.svc:8200"
+            - name: VAULT_TOKEN
+              value: "dev-root-token"
+            - name: VAULT_KV_MOUNT_LOCATION
+              value: "secrets"
+            - name: VAULT_PKI_MOUNT_LOCATION
+              value: "certs"
+            - name: VAULT_PKI_ROLE_NAME
+              value: "role"
+          volumeMounts:
+            - name: core-config
+              mountPath: /etc/nico-core
+            - name: no-sa-token
+              mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+          livenessProbe:
+            tcpSocket:
+              port: 1079
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readinessProbe:
+            tcpSocket:
+              port: 1079
+            initialDelaySeconds: 15
+            periodSeconds: 10
+      volumes:
+        - name: core-config
+          projected:
+            sources:
+              - configMap:
+                  name: nico-core-config
+              - secret:
+                  name: nico-rest-core-grpc-certs
+        # Empty dir masks the SA token path so Core uses VAULT_TOKEN instead
+        # of attempting Kubernetes service account login to Vault.
+        - name: no-sa-token
+          emptyDir: {}
