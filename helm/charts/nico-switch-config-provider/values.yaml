@@ -21,12 +21,12 @@ namespaceOverride: ""
 
 image:
   # Set to an image name when global.image.repository is empty (e.g. local Kind dev).
-  name: nico-health-provider
+  name: nico-switch-config-provider
   # Override image.name with a fully qualified image reference for standalone use.
   override: ""
 
 service:
-  name: nico-health-provider
+  name: nico-switch-config-provider
   type: ClusterIP
   port: 9443
 
@@ -40,8 +40,8 @@ resources:
 
 certificate:
   enabled: true
-  name: nico-health-provider-certs
-  secretName: nico-health-provider-certs
+  name: nico-switch-config-provider-certs
+  secretName: nico-switch-config-provider-certs
   duration: 720h
   renewBefore: 360h
   subject:

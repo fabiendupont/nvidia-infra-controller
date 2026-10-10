@@ -167,6 +167,7 @@ func run(ctx context.Context) (retErr error) {
 		defer svcServer.Stop()
 		serviceEndpoints["networking"] = svcServer.Address()
 		serviceEndpoints["compute"] = svcServer.Address()
+		serviceEndpoints["switch"] = svcServer.Address()
 	}
 
 	wfCfg := wfconfig.NewConfig()
