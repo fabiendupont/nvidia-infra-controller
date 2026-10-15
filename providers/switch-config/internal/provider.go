@@ -35,6 +35,7 @@ type Server struct {
 	echo         *echo.Echo
 	store        *ConfigStore
 	switchClient *SwitchClient
+	configurator SwitchConfigurator
 	activities   *CableValidationActivities
 	worker       tsdkWorker.Worker
 	siteIDs      []string
@@ -93,6 +94,20 @@ func (s *Server) Init(_ context.Context, req *providerv1.InitRequest) (*provider
 		s.store = NewConfigStore(db.DB)
 	}
 	s.activities = NewCableValidationActivities(s.switchClient, s.store)
+
+	// Build the switch configurator (factory: spectrum/nvos only for now).
+	platform := envOrDefault("SWITCH_PLATFORM", "spectrum")
+	configurator, err := NewSwitchConfigurator(platform, ConfiguratorOptions{
+		SwitchService:  s.switchClient,
+		ConfigStore:    s.store,
+		InsecureTLS:    envOrDefault("SWITCH_INSECURE_TLS", "") == "true",
+		SwitchUsername: envOrDefault("SWITCH_USERNAME", ""),
+		SwitchPassword: envOrDefault("SWITCH_PASSWORD", ""),
+	})
+	if err != nil {
+		return initFailed("switch configurator (%s): %v", platform, err), nil
+	}
+	s.configurator = configurator
 
 	// Register routes.
 	registerRoutes(s.echo, s)

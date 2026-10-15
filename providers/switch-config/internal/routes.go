@@ -46,39 +46,22 @@ func (s *Server) handleRenderConfig(c echo.Context) error {
 	switchID := c.Param("switchID")
 	ctx := c.Request().Context()
 
-	sw, err := s.switchClient.GetSwitch(ctx, switchID)
+	if s.configurator == nil {
+		return c.JSON(http.StatusServiceUnavailable, map[string]string{"error": "configurator not available"})
+	}
+	rec, err := s.configurator.Push(ctx, switchID)
 	if err != nil {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "switch not found: " + err.Error()})
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
-	rc, err := s.switchClient.GetRoutingConfig(ctx, switchID)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "routing config error: " + err.Error()})
+	resp := map[string]interface{}{
+		"switch_id": switchID,
+		"format":    "nvue-json",
 	}
-
-	tmplSrc, err := DefaultTemplate("cumulus", "cli")
-	if err != nil {
-		tmplSrc = "# no default template for this platform\n"
+	if rec != nil {
+		resp["content_hash"] = rec.ContentHash
+		resp["id"] = rec.ID
 	}
-
-	renderCtx := RenderContext{Switch: sw, RoutingConfig: rc, SiteID: sw.GetSiteId()}
-	rendered, err := RenderCLI(tmplSrc, renderCtx)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "render error: " + err.Error()})
-	}
-
-	if s.store != nil {
-		rec, err := s.store.Store(ctx, switchID, sw.GetSiteId(), "cli", "api", "rendered via HTTP", rendered)
-		if err == nil {
-			return c.JSON(http.StatusOK, map[string]interface{}{
-				"switch_id":    switchID,
-				"format":       "cli",
-				"content_hash": rec.ContentHash,
-			})
-		}
-	}
-	c.Response().Header().Set("Content-Type", "text/plain")
-	_, _ = c.Response().Write(rendered)
-	return nil
+	return c.JSON(http.StatusOK, resp)
 }
 
 func (s *Server) handleGetValidation(c echo.Context) error {

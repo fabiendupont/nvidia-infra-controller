@@ -8,7 +8,7 @@ go 1.26.4
 require (
 	github.com/NVIDIA/infra-controller/provider-api v0.0.0-00010101000000-000000000000
 	github.com/NVIDIA/infra-controller/provider-sdk v0.0.0-00010101000000-000000000000
-	github.com/Masterminds/sprig/v3 v3.3.0
+	github.com/fabiendupont/nvidia-nvue-client-go v0.511.0
 	github.com/google/uuid v1.6.0
 	github.com/labstack/echo/v4 v4.13.3
 	github.com/rs/zerolog v1.34.0
@@ -20,3 +20,4 @@ require (
 
 replace github.com/NVIDIA/infra-controller/provider-api => ../../provider-api
 replace github.com/NVIDIA/infra-controller/provider-sdk => ../../provider-sdk
+replace github.com/fabiendupont/nvidia-nvue-client-go => /home/fdupont/Code/github.com/NVIDIA/nvue-client-go
