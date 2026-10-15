@@ -82,3 +82,15 @@ temporal:
 
 # comma-separated site UUIDs this provider manages
 siteIds: ""
+
+switch:
+  # platform selects the switch vendor configurator.
+  # "spectrum"/"nvos": NVIDIA Spectrum switches via NVUE REST API (default).
+  # "nvlink": NVLink fabric switches — not yet implemented (managed by NICo Core via NMX-C).
+  platform: "spectrum"
+  # insecureTLS skips TLS verification when connecting to the switch NVUE API.
+  # Set true only in dev/lab environments with self-signed switch certs.
+  insecureTLS: false
+  # credentials for the switch NVUE API (SWITCH_USERNAME / SWITCH_PASSWORD env vars).
+  # Production: use a Vault-backed secret and set credential_ref on the NicoSwitch object.
+  credentialsSecret: ""  # Kubernetes Secret name with username/password keys

@@ -5,9 +5,12 @@ package switchconfig
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
+	"github.com/fabiendupont/nvidia-nvue-client-go/pkg/nvue"
 	"github.com/rs/zerolog/log"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/workflow"
@@ -96,13 +99,59 @@ func (a *CableValidationActivities) FetchExpectedTopologyActivity(ctx context.Co
 	return topology, nil
 }
 
-// FetchObservedLLDPActivity returns LLDP neighbors observed on a switch.
-// Returns empty ObservedLLDP until Core adds GetSwitchLLDPNeighbors RPC
-// or the provider adds SSH/NETCONF discovery.
+// FetchObservedLLDPActivity returns LLDP neighbors observed on a switch via the
+// NVUE REST API: GET /nvue_v1/interface (applied revision).
+// NVUE returns interface data including lldp/neighbor per interface.
 func (a *CableValidationActivities) FetchObservedLLDPActivity(ctx context.Context, siteID, switchID string) (ObservedLLDP, error) {
 	activity.RecordHeartbeat(ctx, "fetching LLDP for "+switchID)
-	// TODO: implement live LLDP discovery.
-	return ObservedLLDP{SwitchID: switchID}, nil
+
+	sw, err := a.switchClient.GetSwitch(ctx, switchID)
+	if err != nil {
+		return ObservedLLDP{SwitchID: switchID}, fmt.Errorf("get switch: %w", err)
+	}
+	if sw.GetManagementIp() == "" {
+		log.Warn().Str("switch_id", switchID).Msg("no management_ip (data model gap), skipping LLDP fetch")
+		return ObservedLLDP{SwitchID: switchID}, nil
+	}
+
+	username := os.Getenv("SWITCH_USERNAME")
+	password := os.Getenv("SWITCH_PASSWORD")
+	nvueClient := nvue.NewClient(sw.GetManagementIp(), username, password,
+		nvue.WithInsecureSkipVerify())
+
+	// NVUE LLDP path. The applied revision holds the running state.
+	raw, err := nvueClient.Get(ctx, "/interface", "applied")
+	if err != nil {
+		return ObservedLLDP{SwitchID: switchID}, fmt.Errorf("NVUE GET /interface: %w", err)
+	}
+
+	// NVUE response shape: {"<ifname>": {"lldp": {"neighbor": {"<sys-name>": {...}}}}}
+	var ifaces map[string]map[string]interface{}
+	if err := json.Unmarshal(raw, &ifaces); err != nil {
+		return ObservedLLDP{SwitchID: switchID}, fmt.Errorf("parse LLDP response: %w", err)
+	}
+
+	observed := ObservedLLDP{SwitchID: switchID}
+	for ifName, ifData := range ifaces {
+		lldp, ok := ifData["lldp"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+		neighbors, ok := lldp["neighbor"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+		for neighborID := range neighbors {
+			observed.Links = append(observed.Links, &providerv1.CableLink{
+				Local:  &providerv1.CableEndpoint{PortName: ifName},
+				Remote: &providerv1.CableEndpoint{ChassisId: neighborID},
+			})
+		}
+	}
+
+	log.Info().Str("switch_id", switchID).Int("lldp_neighbors", len(observed.Links)).
+		Msg("fetched LLDP neighbors via NVUE")
+	return observed, nil
 }
 
 // ComputeMismatchesActivity diffs expected vs. observed LLDP per port.
