@@ -18,11 +18,16 @@ func registerRoutes(e *echo.Echo, s *Server) {
 	g.GET("/configs/:switchID/nvue", s.handleGetConfig("nvue-json"))
 	g.POST("/configs/:switchID/render", s.handleRenderConfig)
 	g.GET("/validation/:siteID", s.handleGetValidation)
+	// Async: dispatches Temporal workflow when tc is set, falls back to goroutine
 	g.POST("/actions/validate-cables", s.handleValidateCables)
-	// New: OS upgrade, hardware validation, diagnostics
+	g.POST("/site/:siteID/deploy", s.handleDeploySite)
+	// Async OS upgrade (long-running — dispatched as Temporal workflow)
 	g.POST("/switches/:switchID/upgrade", s.handleUpgradeOS)
+	// Sync reads
 	g.GET("/switches/:switchID/health", s.handleHardwareHealth)
 	g.GET("/switches/:switchID/diagnostics", s.handleDiagnostics)
+	// Workflow status polling
+	g.GET("/workflow/:workflowID/status", s.handleWorkflowStatus)
 }
 
 func (s *Server) handleGetConfig(format string) echo.HandlerFunc {
@@ -92,13 +97,87 @@ func (s *Server) handleUpgradeOS(c echo.Context) error {
 	if s.configurator == nil {
 		return c.JSON(http.StatusServiceUnavailable, map[string]string{"error": "configurator not available"})
 	}
+	// Dispatch as Temporal workflow when client is available (upgrade can take 20+ min).
+	if s.tc != nil {
+		opts := client.StartWorkflowOptions{
+			ID:        "os-upgrade-" + switchID,
+			TaskQueue: taskQueue,
+		}
+		run, err := s.tc.ExecuteWorkflow(c.Request().Context(), opts, OSUpgradeWorkflow, switchID, body.TargetVersion)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+		return c.JSON(http.StatusAccepted, map[string]string{
+			"workflow_id":    run.GetID(),
+			"run_id":         run.GetRunID(),
+			"switch_id":      switchID,
+			"target_version": body.TargetVersion,
+		})
+	}
+	// Fallback: synchronous (no Temporal client — development/test only).
 	if err := s.configurator.UpgradeOS(c.Request().Context(), switchID, body.TargetVersion); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 	return c.JSON(http.StatusAccepted, map[string]string{
 		"switch_id":      switchID,
 		"target_version": body.TargetVersion,
-		"message":        "OS upgrade initiated",
+		"message":        "OS upgrade initiated (synchronous fallback)",
+	})
+}
+
+// handleDeploySite dispatches SwitchConfigDeployWorkflow for all switches in a site.
+func (s *Server) handleDeploySite(c echo.Context) error {
+	siteID := c.Param("siteID")
+	if siteID == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "site_id required"})
+	}
+	if s.tc != nil {
+		opts := client.StartWorkflowOptions{
+			ID:        "switch-config-deploy-" + siteID,
+			TaskQueue: taskQueue,
+		}
+		run, err := s.tc.ExecuteWorkflow(c.Request().Context(), opts, SwitchConfigDeployWorkflow, siteID)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+		return c.JSON(http.StatusAccepted, map[string]string{
+			"workflow_id": run.GetID(),
+			"run_id":      run.GetRunID(),
+			"site_id":     siteID,
+		})
+	}
+	// Fallback: push synchronously to each switch.
+	go func() {
+		ctx := context.Background()
+		switches, err := s.activities.ListSwitchesForSiteActivity(ctx, siteID)
+		if err != nil {
+			return
+		}
+		for _, sw := range switches {
+			_ = s.activities.PushConfigActivity(ctx, sw.SwitchID)
+		}
+	}()
+	return c.JSON(http.StatusAccepted, map[string]string{
+		"message": "deploy started for site " + siteID + " (synchronous fallback)",
+		"site_id": siteID,
+	})
+}
+
+// handleWorkflowStatus returns the current status of a Temporal workflow run.
+func (s *Server) handleWorkflowStatus(c echo.Context) error {
+	wfID := c.Param("workflowID")
+	if s.tc == nil {
+		return c.JSON(http.StatusServiceUnavailable, map[string]string{"error": "Temporal client not available"})
+	}
+	resp, err := s.tc.DescribeWorkflowExecution(c.Request().Context(), wfID, "")
+	if err != nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": err.Error()})
+	}
+	info := resp.GetWorkflowExecutionInfo()
+	return c.JSON(http.StatusOK, map[string]string{
+		"workflow_id": info.GetExecution().GetWorkflowId(),
+		"run_id":      info.GetExecution().GetRunId(),
+		"status":      info.GetStatus().String(),
 	})
 }
 
@@ -135,8 +214,20 @@ func (s *Server) handleValidateCables(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "site_id required"})
 	}
 
-	// For the HTTP endpoint we run activities directly in a goroutine.
-	// Production deployments should dispatch via Temporal for durability.
+	// Dispatch as Temporal workflow for durability when client is available.
+	if s.tc != nil {
+		run, err := s.startCableValidationWorkflow(c.Request().Context(), s.tc, body.SiteID)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+		return c.JSON(http.StatusAccepted, map[string]string{
+			"workflow_id": run.GetID(),
+			"run_id":      run.GetRunID(),
+			"site_id":     body.SiteID,
+		})
+	}
+
+	// Fallback: run activities directly in a goroutine (dev/test only).
 	go func() {
 		ctx := context.Background()
 		topology, err := s.activities.FetchExpectedTopologyActivity(ctx, body.SiteID)
@@ -160,13 +251,11 @@ func (s *Server) handleValidateCables(c echo.Context) error {
 	})
 }
 
-// withTemporalClient is used when dispatching cable validation as a real
-// Temporal workflow start (rather than the in-process goroutine above).
-func (s *Server) startCableValidationWorkflow(ctx context.Context, tc client.Client, siteID string) error {
+// startCableValidationWorkflow dispatches CableValidationWorkflow and returns the run.
+func (s *Server) startCableValidationWorkflow(ctx context.Context, tc client.Client, siteID string) (client.WorkflowRun, error) {
 	opts := client.StartWorkflowOptions{
 		ID:        "cable-validation-" + siteID,
 		TaskQueue: taskQueue,
 	}
-	_, err := tc.ExecuteWorkflow(ctx, opts, CableValidationWorkflow, siteID)
-	return err
+	return tc.ExecuteWorkflow(ctx, opts, CableValidationWorkflow, siteID)
 }

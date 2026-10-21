@@ -15,6 +15,7 @@ import (
 
 	echo "github.com/labstack/echo/v4"
 	"github.com/rs/zerolog/log"
+	tsdkClient "go.temporal.io/sdk/client"
 	tsdkWorker "go.temporal.io/sdk/worker"
 
 	providerv1 "github.com/NVIDIA/infra-controller/provider-api/provider/v1"
@@ -36,7 +37,8 @@ type Server struct {
 	store        *ConfigStore
 	switchClient *SwitchClient
 	configurator SwitchConfigurator
-	activities   *CableValidationActivities
+	activities   *SwitchConfigActivities
+	tc           tsdkClient.Client
 	worker       tsdkWorker.Worker
 	siteIDs      []string
 }
@@ -93,8 +95,6 @@ func (s *Server) Init(_ context.Context, req *providerv1.InitRequest) (*provider
 		}
 		s.store = NewConfigStore(db.DB)
 	}
-	s.activities = NewCableValidationActivities(s.switchClient, s.store)
-
 	// Build the switch configurator (factory: spectrum/nvos only for now).
 	platform := envOrDefault("SWITCH_PLATFORM", "spectrum")
 	configurator, err := NewSwitchConfigurator(platform, ConfiguratorOptions{
@@ -108,6 +108,34 @@ func (s *Server) Init(_ context.Context, req *providerv1.InitRequest) (*provider
 		return initFailed("switch configurator (%s): %v", platform, err), nil
 	}
 	s.configurator = configurator
+	s.activities = NewSwitchConfigActivities(s.switchClient, s.store, configurator)
+
+	// Build Temporal client and start worker for async workflow dispatch.
+	temporalEndpoint := req.GetTemporalEndpoint()
+	if temporalEndpoint == "" {
+		temporalEndpoint = envOrDefault("TEMPORAL_ENDPOINT", "localhost:7233")
+	}
+	temporalNamespace := req.GetTemporalNamespace()
+	if temporalNamespace == "" {
+		temporalNamespace = envOrDefault("TEMPORAL_NAMESPACE", "default")
+	}
+	tc, err := tsdkClient.Dial(tsdkClient.Options{
+		HostPort:  temporalEndpoint,
+		Namespace: temporalNamespace,
+	})
+	if err != nil {
+		log.Warn().Err(err).Msg("switch-config: Temporal unavailable, async routes disabled")
+	} else {
+		s.tc = tc
+		s.worker = tsdkWorker.New(tc, taskQueue, tsdkWorker.Options{})
+		s.RegisterWorkflows(s.worker)
+		s.RegisterActivities(s.worker)
+		go func() {
+			if err := s.worker.Run(tsdkWorker.InterruptCh()); err != nil {
+				log.Error().Err(err).Msg("switch-config Temporal worker stopped")
+			}
+		}()
+	}
 
 	// Register routes.
 	registerRoutes(s.echo, s)
@@ -131,6 +159,8 @@ func (s *Server) TaskQueue() string { return taskQueue }
 
 func (s *Server) RegisterWorkflows(w tsdkWorker.Worker) {
 	w.RegisterWorkflow(CableValidationWorkflow)
+	w.RegisterWorkflow(SwitchConfigDeployWorkflow)
+	w.RegisterWorkflow(OSUpgradeWorkflow)
 }
 
 func (s *Server) RegisterActivities(w tsdkWorker.Worker) {
@@ -145,9 +175,11 @@ func (s *Server) GetRoutes(_ context.Context, _ *providerv1.GetRoutesRequest) (*
 		{Method: http.MethodPost, Path: prefix + "/configs/:switchID/render"},
 		{Method: http.MethodGet, Path: prefix + "/validation/:siteID"},
 		{Method: http.MethodPost, Path: prefix + "/actions/validate-cables"},
+		{Method: http.MethodPost, Path: prefix + "/site/:siteID/deploy"},
 		{Method: http.MethodPost, Path: prefix + "/switches/:switchID/upgrade"},
 		{Method: http.MethodGet, Path: prefix + "/switches/:switchID/health"},
 		{Method: http.MethodGet, Path: prefix + "/switches/:switchID/diagnostics"},
+		{Method: http.MethodGet, Path: prefix + "/workflow/:workflowID/status"},
 	}}, nil
 }
 
@@ -160,11 +192,13 @@ func (s *Server) GetResourceTypes(_ context.Context, _ *providerv1.GetResourceTy
 				Plural:    "switches",
 				ApiPrefix: prefix,
 				Actions: []*providerv1.ActionDescriptor{
+					{Name: "deploy-site", Label: "Deploy Site Config", Method: "POST", Path: "/site/{id}/deploy", RequiresConfirmation: true},
 					{Name: "push-config", Label: "Push Config", Method: "POST", Path: "/configs/{id}/render", RequiresConfirmation: true},
 					{Name: "validate-cables", Label: "Validate Cables", Method: "POST", Path: "/actions/validate-cables", RequiresConfirmation: false},
 					{Name: "upgrade-os", Label: "Upgrade OS", Method: "POST", Path: "/switches/{id}/upgrade", RequiresConfirmation: true},
 					{Name: "hardware-health", Label: "Hardware Health", Method: "GET", Path: "/switches/{id}/health", RequiresConfirmation: false},
 					{Name: "diagnostics", Label: "Diagnostics", Method: "GET", Path: "/switches/{id}/diagnostics", RequiresConfirmation: false},
+					{Name: "workflow-status", Label: "Workflow Status", Method: "GET", Path: "/workflow/{id}/status", RequiresConfirmation: false},
 				},
 			},
 		},
