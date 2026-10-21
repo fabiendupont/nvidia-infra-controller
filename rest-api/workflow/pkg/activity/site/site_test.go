@@ -27,7 +27,7 @@ import (
 	cdbu "github.com/NVIDIA/infra-controller/rest-api/db/pkg/util"
 	cipam "github.com/NVIDIA/infra-controller/rest-api/ipam"
 	corev1 "github.com/NVIDIA/infra-controller/rest-api/proto/core/gen/v1"
-	"github.com/NVIDIA/infra-controller/rest-api/workflow/internal/config"
+	"github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/config"
 	cwm "github.com/NVIDIA/infra-controller/rest-api/workflow/internal/metrics"
 	sc "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/client/site"
 	"github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/util"

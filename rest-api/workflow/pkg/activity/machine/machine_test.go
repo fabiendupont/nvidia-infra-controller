@@ -14,7 +14,7 @@ import (
 	"time"
 
 	cdbp "github.com/NVIDIA/infra-controller/rest-api/db/pkg/db/paginator"
-	"github.com/NVIDIA/infra-controller/rest-api/workflow/internal/config"
+	"github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/config"
 	"github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/util"
 
 	sc "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/client/site"

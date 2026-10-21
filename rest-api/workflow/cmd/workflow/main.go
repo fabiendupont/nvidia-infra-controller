@@ -28,7 +28,7 @@ import (
 	ctemporal "github.com/NVIDIA/infra-controller/rest-api/common/pkg/temporal"
 	cdb "github.com/NVIDIA/infra-controller/rest-api/db/pkg/db"
 
-	"github.com/NVIDIA/infra-controller/rest-api/workflow/internal/config"
+	"github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/config"
 
 	cwm "github.com/NVIDIA/infra-controller/rest-api/workflow/internal/metrics"
 	cwfh "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/health"

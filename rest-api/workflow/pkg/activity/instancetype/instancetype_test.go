@@ -25,7 +25,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/NVIDIA/infra-controller/rest-api/workflow/internal/config"
+	"github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/config"
 
 	"os"
 

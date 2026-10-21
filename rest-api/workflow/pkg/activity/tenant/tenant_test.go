@@ -23,7 +23,7 @@ import (
 	cdb "github.com/NVIDIA/infra-controller/rest-api/db/pkg/db"
 	cdbm "github.com/NVIDIA/infra-controller/rest-api/db/pkg/db/model"
 	cdbu "github.com/NVIDIA/infra-controller/rest-api/db/pkg/util"
-	"github.com/NVIDIA/infra-controller/rest-api/workflow/internal/config"
+	"github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/config"
 	sc "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/client/site"
 	cwu "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/util"
 

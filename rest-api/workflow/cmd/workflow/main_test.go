@@ -20,7 +20,7 @@ import (
 	tmocks "go.temporal.io/sdk/mocks"
 	tsdkWorker "go.temporal.io/sdk/worker"
 
-	"github.com/NVIDIA/infra-controller/rest-api/workflow/internal/config"
+	"github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/config"
 	cwfn "github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/namespace"
 )
 

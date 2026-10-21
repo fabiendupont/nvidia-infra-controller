@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	cconfig "github.com/NVIDIA/infra-controller/rest-api/common/pkg/config"
-	"github.com/NVIDIA/infra-controller/rest-api/workflow/internal/config"
+	"github.com/NVIDIA/infra-controller/rest-api/workflow/pkg/config"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	temporalClient "go.temporal.io/sdk/client"

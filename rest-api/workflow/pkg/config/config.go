@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -64,6 +65,11 @@ const (
 	// ConfigTemporalEncryptionKeyPath specifies the path for file containing data encryption key for Temporal
 	ConfigTemporalEncryptionKeyPath = "temporal.encryptionKeyPath"
 
+	// ConfigTemporalSiteNamespaceRetention specifies the retention the Site worker applies to the `site` namespace.
+	ConfigTemporalSiteNamespaceRetention = "temporal.siteNamespace.retention"
+	// ConfigTemporalSiteNamespaceSuccessfulInventoryRetention specifies how long a successful inventory workflow is kept.
+	ConfigTemporalSiteNamespaceSuccessfulInventoryRetention = "temporal.siteNamespace.successfulInventoryRetention"
+
 	// ConfigTemporalTlsEnabled specifies if TLS should be used with Temporal
 	ConfigTemporalTlsEnabled = "temporal.tls.enabled"
 	// ConfigTemporalCertPath specifies the path for client cert
@@ -114,6 +120,12 @@ const (
 	// DefaultMaxConcurrentActivityPollers is the poller count used when config.yaml
 	// doesn't set worker.maxConcurrentActivityPollers. Matches the historical hardcoded value.
 	DefaultMaxConcurrentActivityPollers = 10
+	// DefaultSiteNamespaceRetention matches the `72h` the setup scripts and the Temporal CLI create the
+	// site namespace with. Used both as the default viper value and in tests.
+	DefaultSiteNamespaceRetention = 72 * time.Hour
+	// DefaultSiteNamespaceSuccessfulInventoryRetention keeps a day of successful inventory runs, which
+	// gives operators a 24-hour window to diagnose issues without filling the namespace history.
+	DefaultSiteNamespaceSuccessfulInventoryRetention = 24 * time.Hour
 	// MaxMaxConcurrentActivityPollers caps the configurable poller count. Each poller can
 	// hold a DB connection from the shared pgx pool while its activity runs, and this worker
 	// also serves the cloud task queue. Lowered from an initial 200 (an unguessed
@@ -164,6 +176,8 @@ func NewConfig() *Config {
 	c.v.SetDefault(ConfigTemporalHost, "localhost")
 	c.v.SetDefault(ConfigTemporalPort, 7233)
 	c.v.SetDefault(ConfigTemporalTlsEnabled, true)
+	c.v.SetDefault(ConfigTemporalSiteNamespaceRetention, DefaultSiteNamespaceRetention)
+	c.v.SetDefault(ConfigTemporalSiteNamespaceSuccessfulInventoryRetention, DefaultSiteNamespaceSuccessfulInventoryRetention)
 
 	c.v.SetDefault(ConfigMetricsEnabled, true)
 	c.v.SetDefault(ConfigMetricsPort, 9360)
@@ -655,4 +669,16 @@ func (c *Config) Close() {
 	if c.temporal != nil {
 		c.temporal.Close()
 	}
+}
+
+// GetTemporalSiteNamespaceRetention returns the retention the Site worker applies to the `site`
+// namespace. Zero leaves the namespace retention unchanged.
+func (c *Config) GetTemporalSiteNamespaceRetention() time.Duration {
+	return c.v.GetDuration(ConfigTemporalSiteNamespaceRetention)
+}
+
+// GetTemporalSiteNamespaceSuccessfulInventoryRetention returns how long a successful inventory
+// workflow is kept in the `site` namespace. Zero keeps it for the full namespace retention.
+func (c *Config) GetTemporalSiteNamespaceSuccessfulInventoryRetention() time.Duration {
+	return c.v.GetDuration(ConfigTemporalSiteNamespaceSuccessfulInventoryRetention)
 }
