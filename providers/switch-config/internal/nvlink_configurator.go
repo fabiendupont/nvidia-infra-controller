@@ -26,6 +26,8 @@ type NVLinkConfigurator struct {
 }
 
 // NewNVLinkConfigurator creates an NVLinkConfigurator.
+func (n *NVLinkConfigurator) ConfiguratorProvider() string { return "nvlink" }
+
 func NewNVLinkConfigurator(opts ConfiguratorOptions) (*NVLinkConfigurator, error) {
 	return &NVLinkConfigurator{opts: opts}, nil
 }

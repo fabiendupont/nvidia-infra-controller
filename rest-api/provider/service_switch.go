@@ -228,5 +228,11 @@ func expectedSwitchToProto(es *cdbm.ExpectedSwitch) *providerv1.NicoSwitch {
 	if es.RackID != nil {
 		sw.RackId = *es.RackID
 	}
+	if len(es.Labels) > 0 {
+		sw.Labels = make(map[string]string, len(es.Labels))
+		for k, v := range es.Labels {
+			sw.Labels[k] = v
+		}
+	}
 	return sw
 }

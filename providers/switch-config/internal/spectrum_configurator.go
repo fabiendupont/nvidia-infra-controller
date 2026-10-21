@@ -29,6 +29,8 @@ type SpectrumConfigurator struct {
 }
 
 // NewSpectrumConfigurator creates a SpectrumConfigurator.
+func (s *SpectrumConfigurator) ConfiguratorProvider() string { return "spectrum" }
+
 func NewSpectrumConfigurator(opts ConfiguratorOptions) (*SpectrumConfigurator, error) {
 	return &SpectrumConfigurator{opts: opts}, nil
 }

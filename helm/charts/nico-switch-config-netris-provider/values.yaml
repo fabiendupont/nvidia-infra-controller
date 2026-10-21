@@ -1,0 +1,39 @@
+replicaCount: 1
+
+image:
+  name: nico-switch-config-netris-provider
+  override: ""
+
+global:
+  image:
+    repository: ""
+    tag: latest
+    pullPolicy: IfNotPresent
+  imagePullSecrets: []
+
+service:
+  port: 9443
+  name: nico-switch-config-netris-provider
+
+# Netris SDN controller configuration
+netris:
+  apiURL: ""       # https://netris.example.com
+  apiToken: ""     # bearer token (prefer netrisTokenSecret)
+  tokenSecret: ""  # k8s Secret name containing NETRIS_API_TOKEN
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+certificate:
+  enabled: false
+  secretName: nico-switch-config-netris-tls
+
+temporal:
+  endpoint: ""
+  namespace: default
+
+discovery:
+  enabled: true
+  namespace: ""

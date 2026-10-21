@@ -36,6 +36,7 @@ type Server struct {
 	echo         *echo.Echo
 	store        *ConfigStore
 	switchClient *SwitchClient
+	platform     string // SWITCH_PLATFORM, used for annotation-based workflow dispatch
 	configurator SwitchConfigurator
 	activities   *SwitchConfigActivities
 	tc           tsdkClient.Client
@@ -107,6 +108,7 @@ func (s *Server) Init(_ context.Context, req *providerv1.InitRequest) (*provider
 	if err != nil {
 		return initFailed("switch configurator (%s): %v", platform, err), nil
 	}
+	s.platform = platform
 	s.configurator = configurator
 	s.activities = NewSwitchConfigActivities(s.switchClient, s.store, configurator)
 

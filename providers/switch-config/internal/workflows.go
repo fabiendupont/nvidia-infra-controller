@@ -13,11 +13,6 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
-// SwitchRef identifies a switch returned by ListSwitchesForSiteActivity.
-type SwitchRef struct {
-	SwitchID string
-	Name     string
-}
 
 // SwitchConfigActivities is the unified activity set for the switch-config
 // provider. It consolidates list/push/upgrade activities alongside the
@@ -45,7 +40,11 @@ func (a *SwitchConfigActivities) ListSwitchesForSiteActivity(ctx context.Context
 	}
 	refs := make([]SwitchRef, 0, len(switches))
 	for _, sw := range switches {
-		refs = append(refs, SwitchRef{SwitchID: sw.GetId(), Name: sw.GetName()})
+		provider := sw.GetLabels()["nico.nvidia.com/switch-config-provider"]
+		if provider == "" {
+			provider = "spectrum" // default when annotation absent
+		}
+		refs = append(refs, SwitchRef{SwitchID: sw.GetId(), Name: sw.GetName(), Provider: provider})
 	}
 	return refs, nil
 }
@@ -64,10 +63,16 @@ func (a *SwitchConfigActivities) UpgradeOSActivity(ctx context.Context, switchID
 }
 
 // SwitchConfigDeployWorkflow pushes NICo-derived configuration to all fabric
-// switches in the given site via the NVUE REST API. Mirrors nv-config-manager's
-// SpxOverlayWorkflow. Switches are configured sequentially to avoid overloading
-// the fabric control plane.
-func SwitchConfigDeployWorkflow(ctx workflow.Context, siteID string) error {
+// switches in the given site that are assigned to the given providerName.
+// Switches with a different nico.nvidia.com/switch-config-provider annotation
+// are skipped — they are handled by their own provider's workflow.
+//
+// providerName must match ConfiguratorOptions.Platform, e.g. "spectrum".
+// Pass "" to use the default "spectrum".
+func SwitchConfigDeployWorkflow(ctx workflow.Context, siteID, providerName string) error {
+	if providerName == "" {
+		providerName = "spectrum"
+	}
 	ao := workflow.ActivityOptions{
 		StartToCloseTimeout: 10 * time.Minute,
 		HeartbeatTimeout:    30 * time.Second,
@@ -86,6 +91,12 @@ func SwitchConfigDeployWorkflow(ctx workflow.Context, siteID string) error {
 
 	var lastErr error
 	for _, sw := range switches {
+		// Skip switches assigned to a different switch-config provider.
+		if sw.Provider != providerName {
+			workflow.GetLogger(ctx).Info("skipping switch assigned to different provider",
+				"switchID", sw.SwitchID, "switchProvider", sw.Provider, "thisProvider", providerName)
+			continue
+		}
 		if err := workflow.ExecuteActivity(ctx, (*SwitchConfigActivities).PushConfigActivity, sw.SwitchID).Get(ctx, nil); err != nil {
 			workflow.GetLogger(ctx).Error("failed to push config", "switchID", sw.SwitchID, "error", err)
 			lastErr = err // continue to next switch; report last error

@@ -18,6 +18,7 @@ use (
 	./providers/nvswitch
 	./providers/showback
 	./providers/switch-config
+	./providers/switch-config-netris
 )
 
 replace (

@@ -136,7 +136,7 @@ func (s *Server) handleDeploySite(c echo.Context) error {
 			ID:        "switch-config-deploy-" + siteID,
 			TaskQueue: taskQueue,
 		}
-		run, err := s.tc.ExecuteWorkflow(c.Request().Context(), opts, SwitchConfigDeployWorkflow, siteID)
+		run, err := s.tc.ExecuteWorkflow(c.Request().Context(), opts, SwitchConfigDeployWorkflow, siteID, s.platform)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		}
