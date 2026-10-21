@@ -101,6 +101,7 @@ type Subnet struct {
 	IPv6Block                  *IPBlock   `bun:"rel:belongs-to,join:ipv6_block_id=id"`
 	PrefixLength               int        `bun:"prefix_length,notnull"`
 	MTU                        *int       `bun:"mtu"`
+	VlanID                     *int32     `bun:"vlan_id"`
 	Status                     string     `bun:"status,notnull"`
 	IsMissingOnSite            bool       `bun:"is_missing_on_site,notnull"`
 	Created                    time.Time  `bun:"created,nullzero,notnull,default:current_timestamp"`

@@ -68,6 +68,8 @@ type ExpectedSwitch struct {
 	TrayIdx               *int32    `bun:"tray_idx"`
 	HostID                *int32    `bun:"host_id"`
 	Labels                Labels    `bun:"labels,type:jsonb"`
+	EsiBaseMac            *string   `bun:"esi_base_mac"`
+	DfPreference          *int16    `bun:"df_preference"`
 	Created               time.Time `bun:"created,nullzero,notnull,default:current_timestamp"`
 	Updated               time.Time `bun:"updated,nullzero,notnull,default:current_timestamp"`
 	CreatedBy             uuid.UUID `bun:"type:uuid,notnull"`

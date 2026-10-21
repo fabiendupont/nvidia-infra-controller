@@ -120,9 +120,73 @@ func (s *switchServiceServer) GetSwitchRoutingConfig(ctx context.Context, req *p
 		})
 	}
 
-	// BGP peers, IS-IS interfaces, L2 VNIs, and EVPN fabric params (ESI base
-	// MAC, fabric MAC, DF preference) are not stored in NICo's data model.
-	// They remain empty until the data model is extended.
+	// BGP peers: query from switch_bgp_peers table.
+	var bgpPeers []cdbm.SwitchBGPPeer
+	if err := s.db.DB.NewSelect().
+		Model(&bgpPeers).
+		Where("expected_switch_id = ?", switchID).
+		Scan(ctx); err != nil {
+		// Non-fatal: log and continue with empty peer list.
+		_ = err
+	}
+	for _, p := range bgpPeers {
+		proto := &providerv1.BgpPeer{
+			PeerIp:          p.PeerIP,
+			PeerAsn:         uint32(p.PeerASN),
+			Vrf:             p.VRF,
+			Ttl:             uint32(p.TTL),
+			EvpnEnabled:     p.EVPNEnabled,
+		}
+		if p.PeerGroup != nil {
+			proto.PeerGroup = *p.PeerGroup
+		}
+		if p.SourceInterface != nil {
+			proto.SourceInterface = *p.SourceInterface
+		}
+		if p.RouteRole != nil {
+			proto.RouteRole = *p.RouteRole
+		}
+		cfg.BgpPeers = append(cfg.BgpPeers, proto)
+	}
+
+	// Build a VPC UUID → VRF name map for the L2 VNI lookup below.
+	vpcToVRF := make(map[uuid.UUID]string, len(vpcs))
+	for i := range vpcs {
+		vpcToVRF[vpcs[i].ID] = "nico-" + vpcs[i].Name
+	}
+
+	// Populate L2 VNIs from subnets that have a VLAN ID assigned.
+	subnetDAO := cdbm.NewSubnetDAO(s.db)
+	subnets, _, err := subnetDAO.GetAll(ctx, nil,
+		cdbm.SubnetFilterInput{SiteIDs: []uuid.UUID{sw.SiteID}},
+		paginator.PageInput{}, nil)
+	if err == nil {
+		for i := range subnets {
+			sn := &subnets[i]
+			if sn.VlanID == nil {
+				continue // VLAN not yet assigned
+			}
+			cfg.L2Vnis = append(cfg.L2Vnis, &providerv1.L2Vni{
+				Vlan: uint32(*sn.VlanID),
+				Vrf:  vpcToVRF[sn.VpcID], // empty string if VPC not in this site
+			})
+		}
+	}
+
+	// Populate EVPN fabric params from the switch record when present.
+	if sw.EsiBaseMac != nil || sw.DfPreference != nil {
+		evpn := &providerv1.EvpnConfig{}
+		if sw.EsiBaseMac != nil {
+			evpn.EsiBaseMac = *sw.EsiBaseMac
+		}
+		if sw.DfPreference != nil {
+			evpn.DfPreference = uint32(*sw.DfPreference)
+		}
+		cfg.Evpn = evpn
+	}
+
+	// IS-IS interfaces and EVPN fabric_mac remain empty until the data model
+	// is extended.
 
 	return cfg, nil
 }
