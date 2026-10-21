@@ -94,3 +94,6 @@ switch:
   # credentials for the switch NVUE API (SWITCH_USERNAME / SWITCH_PASSWORD env vars).
   # Production: use a Vault-backed secret and set credential_ref on the NicoSwitch object.
   credentialsSecret: ""  # Kubernetes Secret name with username/password keys
+  # upgradeEnabled gates the POST /switches/:id/upgrade route.
+  # Disabled by default — OS upgrade is destructive and requires explicit opt-in.
+  upgradeEnabled: false

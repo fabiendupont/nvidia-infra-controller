@@ -145,6 +145,9 @@ func (s *Server) GetRoutes(_ context.Context, _ *providerv1.GetRoutesRequest) (*
 		{Method: http.MethodPost, Path: prefix + "/configs/:switchID/render"},
 		{Method: http.MethodGet, Path: prefix + "/validation/:siteID"},
 		{Method: http.MethodPost, Path: prefix + "/actions/validate-cables"},
+		{Method: http.MethodPost, Path: prefix + "/switches/:switchID/upgrade"},
+		{Method: http.MethodGet, Path: prefix + "/switches/:switchID/health"},
+		{Method: http.MethodGet, Path: prefix + "/switches/:switchID/diagnostics"},
 	}}, nil
 }
 
@@ -159,6 +162,9 @@ func (s *Server) GetResourceTypes(_ context.Context, _ *providerv1.GetResourceTy
 				Actions: []*providerv1.ActionDescriptor{
 					{Name: "push-config", Label: "Push Config", Method: "POST", Path: "/configs/{id}/render", RequiresConfirmation: true},
 					{Name: "validate-cables", Label: "Validate Cables", Method: "POST", Path: "/actions/validate-cables", RequiresConfirmation: false},
+					{Name: "upgrade-os", Label: "Upgrade OS", Method: "POST", Path: "/switches/{id}/upgrade", RequiresConfirmation: true},
+					{Name: "hardware-health", Label: "Hardware Health", Method: "GET", Path: "/switches/{id}/health", RequiresConfirmation: false},
+					{Name: "diagnostics", Label: "Diagnostics", Method: "GET", Path: "/switches/{id}/diagnostics", RequiresConfirmation: false},
 				},
 			},
 		},

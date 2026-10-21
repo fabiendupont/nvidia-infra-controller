@@ -19,6 +19,58 @@ type SwitchConfigurator interface {
 	// Validate compares the switch's running configuration against the
 	// desired state computed from NICo's data model.
 	Validate(ctx context.Context, switchID string) (*ValidationResult, error)
+
+	// UpgradeOS triggers an OS/firmware upgrade to targetVersion on the switch.
+	// NVUE path: PATCH /platform/firmware with target version + apply.
+	UpgradeOS(ctx context.Context, switchID, targetVersion string) error
+
+	// ValidateHardware checks physical hardware health (PSUs, fans, transceivers).
+	// NVUE path: GET /platform/environment (read-only, no revision needed).
+	ValidateHardware(ctx context.Context, switchID string) (*HardwareHealthResult, error)
+
+	// GetDiagnostics returns a point-in-time snapshot of operational state.
+	// NVUE paths: BGP neighbors, MAC table, MLAG state (all read-only).
+	GetDiagnostics(ctx context.Context, switchID string) (*SwitchDiagnostics, error)
+}
+
+// HardwareHealthResult holds the outcome of a hardware health check.
+type HardwareHealthResult struct {
+	Healthy      bool
+	PSUs         []ComponentHealth
+	Fans         []ComponentHealth
+	Transceivers []ComponentHealth
+	Errors       []string
+}
+
+// ComponentHealth describes the state of a single hardware component.
+type ComponentHealth struct {
+	Name   string
+	State  string // "ok", "failed", "absent"
+	Detail string
+}
+
+// SwitchDiagnostics holds a point-in-time operational snapshot of a switch.
+type SwitchDiagnostics struct {
+	SwitchID     string
+	BGPNeighbors []BGPNeighbor
+	MACEntries   []MACEntry
+	MLAGState    string
+	Errors       []string
+}
+
+// BGPNeighbor is a single BGP peer entry from the switch's routing table.
+type BGPNeighbor struct {
+	PeerIP   string
+	RemoteAS uint32
+	State    string // "Established", "Idle", "Active", etc.
+	VRF      string
+}
+
+// MACEntry is a single MAC forwarding table entry.
+type MACEntry struct {
+	MAC       string
+	VID       int
+	Interface string
 }
 
 // ConfiguratorOptions carries the shared dependencies all configurator

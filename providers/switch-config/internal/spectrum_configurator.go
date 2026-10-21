@@ -130,6 +130,149 @@ func (s *SpectrumConfigurator) Validate(ctx context.Context, switchID string) (*
 	return result, nil
 }
 
+// UpgradeOS triggers a firmware/OS upgrade to targetVersion via NVUE.
+// NVUE path: PATCH /platform/firmware {target: targetVersion} + apply.
+func (s *SpectrumConfigurator) UpgradeOS(ctx context.Context, switchID, targetVersion string) error {
+	sw, err := s.opts.SwitchService.GetSwitch(ctx, switchID)
+	if err != nil {
+		return fmt.Errorf("get switch %s: %w", switchID, err)
+	}
+	if sw.GetManagementIp() == "" {
+		return fmt.Errorf("switch %s has no management_ip", switchID)
+	}
+	username, password := s.resolveCredentials(sw.GetCredentialRef())
+	client := nvue.NewClient(sw.GetManagementIp(), username, password, nvue.WithInsecureSkipVerify())
+
+	log.Info().Str("switch_id", switchID).Str("target_version", targetVersion).
+		Msg("initiating OS upgrade on Spectrum switch via NVUE")
+
+	patches := []nvue.PatchOp{{
+		Path:    "/platform/firmware",
+		Payload: map[string]interface{}{"target": targetVersion},
+	}}
+	if _, err := client.ConfigureAndApply(ctx, patches); err != nil {
+		return fmt.Errorf("NVUE firmware upgrade switch %s to %s: %w", switchID, targetVersion, err)
+	}
+	return nil
+}
+
+// ValidateHardware checks PSUs, fans, and transceivers via NVUE GET /platform/environment.
+func (s *SpectrumConfigurator) ValidateHardware(ctx context.Context, switchID string) (*HardwareHealthResult, error) {
+	sw, err := s.opts.SwitchService.GetSwitch(ctx, switchID)
+	if err != nil {
+		return nil, fmt.Errorf("get switch %s: %w", switchID, err)
+	}
+	if sw.GetManagementIp() == "" {
+		return nil, fmt.Errorf("switch %s has no management_ip", switchID)
+	}
+	username, password := s.resolveCredentials(sw.GetCredentialRef())
+	client := nvue.NewClient(sw.GetManagementIp(), username, password, nvue.WithInsecureSkipVerify())
+
+	raw, err := client.Get(ctx, "/platform/environment", "applied")
+	if err != nil {
+		return nil, fmt.Errorf("GET /platform/environment switch %s: %w", switchID, err)
+	}
+
+	var env map[string]interface{}
+	if err := json.Unmarshal(raw, &env); err != nil {
+		return nil, fmt.Errorf("parse /platform/environment: %w", err)
+	}
+
+	result := &HardwareHealthResult{Healthy: true}
+	parseComponents := func(key string) []ComponentHealth {
+		raw, ok := env[key].(map[string]interface{})
+		if !ok {
+			return nil
+		}
+		var out []ComponentHealth
+		for name, v := range raw {
+			item, _ := v.(map[string]interface{})
+			state, _ := item["state"].(string)
+			if state == "" {
+				state = "unknown"
+			}
+			if state != "ok" && state != "present" {
+				result.Healthy = false
+				result.Errors = append(result.Errors, fmt.Sprintf("%s/%s: %s", key, name, state))
+			}
+			out = append(out, ComponentHealth{Name: name, State: state})
+		}
+		return out
+	}
+	result.PSUs = parseComponents("psu")
+	result.Fans = parseComponents("fan")
+	result.Transceivers = parseComponents("port-module")
+	return result, nil
+}
+
+// GetDiagnostics reads BGP neighbors, MAC table, and MLAG state from the switch.
+func (s *SpectrumConfigurator) GetDiagnostics(ctx context.Context, switchID string) (*SwitchDiagnostics, error) {
+	sw, err := s.opts.SwitchService.GetSwitch(ctx, switchID)
+	if err != nil {
+		return nil, fmt.Errorf("get switch %s: %w", switchID, err)
+	}
+	if sw.GetManagementIp() == "" {
+		return nil, fmt.Errorf("switch %s has no management_ip", switchID)
+	}
+	username, password := s.resolveCredentials(sw.GetCredentialRef())
+	client := nvue.NewClient(sw.GetManagementIp(), username, password, nvue.WithInsecureSkipVerify())
+
+	diag := &SwitchDiagnostics{SwitchID: switchID}
+
+	// BGP neighbors: GET /vrf?include=/*/router/bgp/neighbor
+	if bgpRaw, err := client.Get(ctx, "/vrf", "applied"); err == nil {
+		var vrfs map[string]interface{}
+		if json.Unmarshal(bgpRaw, &vrfs) == nil {
+			for vrfName, vrf := range vrfs {
+				vMap, _ := vrf.(map[string]interface{})
+				router, _ := vMap["router"].(map[string]interface{})
+				bgp, _ := router["bgp"].(map[string]interface{})
+				neighbors, _ := bgp["neighbor"].(map[string]interface{})
+				for peerIP, n := range neighbors {
+					nMap, _ := n.(map[string]interface{})
+					state, _ := nMap["state"].(string)
+					asStr, _ := nMap["remote-as"].(float64)
+					diag.BGPNeighbors = append(diag.BGPNeighbors, BGPNeighbor{
+						PeerIP: peerIP, VRF: vrfName,
+						State: state, RemoteAS: uint32(asStr),
+					})
+				}
+			}
+		}
+	} else {
+		diag.Errors = append(diag.Errors, "bgp: "+err.Error())
+	}
+
+	// MAC table: GET /bridge/domain/br_default/mac-table
+	if macRaw, err := client.Get(ctx, "/bridge/domain/br_default/mac-table", "applied"); err == nil {
+		var macs map[string]interface{}
+		if json.Unmarshal(macRaw, &macs) == nil {
+			for mac, entry := range macs {
+				e, _ := entry.(map[string]interface{})
+				vid, _ := e["vlan"].(float64)
+				iface, _ := e["interface"].(string)
+				diag.MACEntries = append(diag.MACEntries, MACEntry{
+					MAC: mac, VID: int(vid), Interface: iface,
+				})
+			}
+		}
+	} else {
+		diag.Errors = append(diag.Errors, "mac-table: "+err.Error())
+	}
+
+	// MLAG: GET /mlag
+	if mlagRaw, err := client.Get(ctx, "/mlag", "applied"); err == nil {
+		var mlag map[string]interface{}
+		if json.Unmarshal(mlagRaw, &mlag) == nil {
+			if state, ok := mlag["anycast-ip"].(string); ok {
+				diag.MLAGState = state
+			}
+		}
+	}
+
+	return diag, nil
+}
+
 // resolveCredentials returns the switch's NVUE credentials.
 // TODO: resolve via Vault using credentialRef (credential_ref format:
 // "<site_id>/<serial_number>/nvos" as documented in NicoSwitch.credential_ref).

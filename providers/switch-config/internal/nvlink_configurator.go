@@ -75,3 +75,47 @@ func (n *NVLinkConfigurator) Validate(ctx context.Context, switchID string) (*Va
 		ObservedPeer: fmt.Sprintf("firmware: %s", fwRaw),
 	}, nil
 }
+
+// UpgradeOS triggers a firmware upgrade on the NVLink switch via NVUE.
+// NVLink switches run NVOS and support the same NVUE firmware path as Spectrum.
+func (n *NVLinkConfigurator) UpgradeOS(ctx context.Context, switchID, targetVersion string) error {
+	if n.opts.SwitchService == nil {
+		return fmt.Errorf("switch service not available")
+	}
+	sw, err := n.opts.SwitchService.GetSwitch(ctx, switchID)
+	if err != nil {
+		return fmt.Errorf("get switch %s: %w", switchID, err)
+	}
+	if sw.GetManagementIp() == "" {
+		return fmt.Errorf("switch %s has no management_ip", switchID)
+	}
+	username := os.Getenv("SWITCH_USERNAME")
+	if username == "" {
+		username = n.opts.SwitchUsername
+	}
+	password := os.Getenv("SWITCH_PASSWORD")
+	if password == "" {
+		password = n.opts.SwitchPassword
+	}
+	client := nvue.NewClient(sw.GetManagementIp(), username, password, nvue.WithInsecureSkipVerify())
+	patches := []nvue.PatchOp{{
+		Path:    "/platform/firmware",
+		Payload: map[string]interface{}{"target": targetVersion},
+	}}
+	if _, err := client.ConfigureAndApply(ctx, patches); err != nil {
+		return fmt.Errorf("NVUE firmware upgrade NVLink switch %s to %s: %w", switchID, targetVersion, err)
+	}
+	return nil
+}
+
+// ValidateHardware is not applicable to NVLink fabric switches — hardware health
+// is monitored by NICo Core. Returns a not-implemented error.
+func (n *NVLinkConfigurator) ValidateHardware(_ context.Context, switchID string) (*HardwareHealthResult, error) {
+	return nil, fmt.Errorf("ValidateHardware: NVLink switch hardware monitoring handled by NICo Core — switch_id=%s", switchID)
+}
+
+// GetDiagnostics is not applicable to NVLink fabric switches. Returns a
+// not-implemented error.
+func (n *NVLinkConfigurator) GetDiagnostics(_ context.Context, switchID string) (*SwitchDiagnostics, error) {
+	return nil, fmt.Errorf("GetDiagnostics: NVLink switch diagnostics handled by NICo Core — switch_id=%s", switchID)
+}

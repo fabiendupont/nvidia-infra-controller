@@ -19,6 +19,10 @@ func registerRoutes(e *echo.Echo, s *Server) {
 	g.POST("/configs/:switchID/render", s.handleRenderConfig)
 	g.GET("/validation/:siteID", s.handleGetValidation)
 	g.POST("/actions/validate-cables", s.handleValidateCables)
+	// New: OS upgrade, hardware validation, diagnostics
+	g.POST("/switches/:switchID/upgrade", s.handleUpgradeOS)
+	g.GET("/switches/:switchID/health", s.handleHardwareHealth)
+	g.GET("/switches/:switchID/diagnostics", s.handleDiagnostics)
 }
 
 func (s *Server) handleGetConfig(format string) echo.HandlerFunc {
@@ -74,6 +78,52 @@ func (s *Server) handleGetValidation(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 	return c.JSON(http.StatusOK, map[string]interface{}{"site_id": siteID, "results": results})
+}
+
+func (s *Server) handleUpgradeOS(c echo.Context) error {
+	switchID := c.Param("switchID")
+	type req struct {
+		TargetVersion string `json:"target_version"`
+	}
+	var body req
+	if err := c.Bind(&body); err != nil || body.TargetVersion == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "target_version required"})
+	}
+	if s.configurator == nil {
+		return c.JSON(http.StatusServiceUnavailable, map[string]string{"error": "configurator not available"})
+	}
+	if err := s.configurator.UpgradeOS(c.Request().Context(), switchID, body.TargetVersion); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+	return c.JSON(http.StatusAccepted, map[string]string{
+		"switch_id":      switchID,
+		"target_version": body.TargetVersion,
+		"message":        "OS upgrade initiated",
+	})
+}
+
+func (s *Server) handleHardwareHealth(c echo.Context) error {
+	switchID := c.Param("switchID")
+	if s.configurator == nil {
+		return c.JSON(http.StatusServiceUnavailable, map[string]string{"error": "configurator not available"})
+	}
+	result, err := s.configurator.ValidateHardware(c.Request().Context(), switchID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+	return c.JSON(http.StatusOK, result)
+}
+
+func (s *Server) handleDiagnostics(c echo.Context) error {
+	switchID := c.Param("switchID")
+	if s.configurator == nil {
+		return c.JSON(http.StatusServiceUnavailable, map[string]string{"error": "configurator not available"})
+	}
+	diag, err := s.configurator.GetDiagnostics(c.Request().Context(), switchID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+	return c.JSON(http.StatusOK, diag)
 }
 
 func (s *Server) handleValidateCables(c echo.Context) error {

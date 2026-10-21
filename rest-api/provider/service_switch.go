@@ -5,6 +5,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
@@ -60,10 +61,70 @@ func (s *switchServiceServer) GetSwitch(ctx context.Context, req *providerv1.Get
 }
 
 func (s *switchServiceServer) GetSwitchRoutingConfig(ctx context.Context, req *providerv1.GetSwitchRoutingConfigRequest) (*providerv1.SwitchRoutingConfig, error) {
-	// Routing config (VRFs, BGP peers, EVPN) is not yet persisted in NICo's
-	// data model. Return a minimal response with what is known.
-	// TODO: populate from VPC/Subnet model once the mapping is defined.
-	return &providerv1.SwitchRoutingConfig{SwitchId: req.GetSwitchId()}, nil
+	switchID, err := uuid.Parse(req.GetSwitchId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid switch_id: %v", err)
+	}
+
+	// Resolve site_id from the expected switch record.
+	esDAO := cdbm.NewExpectedSwitchDAO(s.db)
+	sw, err := esDAO.Get(ctx, nil, switchID, nil, false)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "switch not found: %v", err)
+	}
+
+	// Query all VPCs for this site that have an active L3 VNI allocated.
+	// These map to VRFs on the switch: one VRF per VPC.
+	vpcDAO := cdbm.NewVpcDAO(s.db)
+	vpcs, _, err := vpcDAO.GetAll(ctx, nil,
+		cdbm.VpcFilterInput{SiteIDs: []uuid.UUID{sw.SiteID}},
+		paginator.PageInput{}, nil)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "list VPCs: %v", err)
+	}
+
+	cfg := &providerv1.SwitchRoutingConfig{SwitchId: req.GetSwitchId()}
+
+	for i := range vpcs {
+		vpc := &vpcs[i]
+		if vpc.ActiveVni == nil {
+			continue // skip VPCs without an allocated VNI
+		}
+
+		vni := uint32(*vpc.ActiveVni)
+		vrfName := "nico-" + vpc.Name // matches spectrum-fabric SyncVPCToFabric convention
+
+		// Build route target strings (ASN:VNI format) from the effective
+		// routing profile when available.
+		var importRTs, exportRTs []string
+		if p := vpc.EffectiveRoutingProfile; p != nil {
+			for _, rt := range p.RouteTargetImports {
+				importRTs = append(importRTs, fmt.Sprintf("%d:%d", rt.ASN, rt.VNI))
+			}
+			for _, rt := range p.RouteTargetsOnExports {
+				exportRTs = append(exportRTs, fmt.Sprintf("%d:%d", rt.ASN, rt.VNI))
+			}
+		}
+
+		cfg.Vrfs = append(cfg.Vrfs, &providerv1.Vrf{
+			Name:               vrfName,
+			L3Vni:              vni,
+			ImportRouteTargets: importRTs,
+			ExportRouteTargets: exportRTs,
+		})
+
+		cfg.L3Vnis = append(cfg.L3Vnis, &providerv1.L3Vni{
+			Vni:              vni,
+			Vrf:              vrfName,
+			RouteTargets:     importRTs, // use import RTs as the combined RT list
+		})
+	}
+
+	// BGP peers, IS-IS interfaces, L2 VNIs, and EVPN fabric params (ESI base
+	// MAC, fabric MAC, DF preference) are not stored in NICo's data model.
+	// They remain empty until the data model is extended.
+
+	return cfg, nil
 }
 
 // ListExpectedNeighbors returns expected LLDP neighbors.
