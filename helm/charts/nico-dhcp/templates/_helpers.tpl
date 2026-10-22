@@ -243,6 +243,7 @@ controls the YAML→JSON name mapping.
 {{- range $i, $s := $subnets }}
 {{- if $i }},{{ end }}
       {
+        "id": {{ $s.id | default (add $i 1) }},
         "subnet": {{ $s.subnet | quote }},
         "pools": [
 {{- range $j, $p := default (list) $s.pools }}
