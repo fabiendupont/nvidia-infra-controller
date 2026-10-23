@@ -1,0 +1,45 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# Local development Dockerfile for nico-site-provider
+
+FROM --platform=$BUILDPLATFORM golang:1.26.4 AS builder
+
+ARG TARGETOS
+ARG TARGETARCH
+
+ENV CGO_ENABLED=0
+ENV GOOS=$TARGETOS
+ENV GOARCH=$TARGETARCH
+
+WORKDIR /workspace
+
+COPY rest-api/go.mod rest-api/go.sum ./
+COPY rest-api/sdk/standard/go.mod ./sdk/standard/
+COPY provider-api/ ../provider-api/
+COPY providers/provisioner-metal3/ ../providers/provisioner-metal3/
+COPY providers/switch-config/ ../providers/switch-config/
+ENV GOWORK=off
+ENV GONOSUMDB=github.com/NVIDIA/infra-controller/*
+RUN go mod download
+
+COPY rest-api/api/ ./api/
+COPY rest-api/provider/ ./provider/
+COPY rest-api/common/ ./common/
+COPY rest-api/auth/ ./auth/
+COPY rest-api/db/ ./db/
+COPY rest-api/proto/ ./proto/
+COPY rest-api/workflow/ ./workflow/
+COPY rest-api/site-workflow/ ./site-workflow/
+COPY rest-api/ipam/ ./ipam/
+COPY rest-api/site-manager/ ./site-manager/
+COPY rest-api/cert-manager/ ./cert-manager/
+COPY rest-api/openapi/ ./openapi/
+
+WORKDIR /workspace/api
+RUN go build         -ldflags "-extldflags '-static' -w -s"         -o /app/site-provider         ./cmd/site-provider
+
+FROM gcr.io/distroless/static-debian12
+COPY --from=builder /app/site-provider /app/site-provider
+EXPOSE 9443
+ENTRYPOINT ["/app/site-provider"]

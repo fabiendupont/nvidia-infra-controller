@@ -11,3 +11,6 @@
 [submodule "helm-prereqs/doca-platform"]
 	path = helm-prereqs/doca-platform
 	url = https://github.com/NVIDIA/doca-platform.git
+[submodule "vendor/nvidia-nvue-client-go"]
+	path = vendor/nvidia-nvue-client-go
+	url = git@github.com:fabiendupont/nvidia-nvue-client-go.git
