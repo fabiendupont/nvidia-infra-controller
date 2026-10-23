@@ -42,7 +42,11 @@ app.kubernetes.io/component: ssh-console-rs
 Global image reference
 */}}
 {{- define "nico-ssh-console-rs.image" -}}
+{{- if .Values.image.override -}}
+{{ .Values.image.override }}
+{{- else -}}
 {{ .Values.global.image.repository }}:{{ .Values.global.image.tag }}
+{{- end -}}
 {{- end }}
 
 {{/*

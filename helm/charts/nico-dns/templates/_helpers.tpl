@@ -42,7 +42,11 @@ app.kubernetes.io/component: dns
 Global image reference
 */}}
 {{- define "nico-dns.image" -}}
+{{- if .Values.image.override -}}
+{{ .Values.image.override }}
+{{- else -}}
 {{ .Values.global.image.repository }}:{{ .Values.global.image.tag }}
+{{- end -}}
 {{- end }}
 
 {{/*

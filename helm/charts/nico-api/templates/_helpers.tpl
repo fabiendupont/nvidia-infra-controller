@@ -42,7 +42,11 @@ app.kubernetes.io/component: api
 Global image reference
 */}}
 {{- define "nico-api.image" -}}
+{{- if .Values.image.override -}}
+{{ .Values.image.override }}
+{{- else -}}
 {{ .Values.global.image.repository }}:{{ .Values.global.image.tag }}
+{{- end -}}
 {{- end }}
 
 {{/* Emit startup shell that brackets IPv6 database hosts before building the URL. */}}

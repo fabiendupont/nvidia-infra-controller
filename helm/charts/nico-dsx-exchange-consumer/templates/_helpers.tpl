@@ -42,7 +42,11 @@ app.kubernetes.io/component: dsx-exchange-consumer
 Global image reference
 */}}
 {{- define "nico-dsx-exchange-consumer.image" -}}
+{{- if .Values.image.override -}}
+{{ .Values.image.override }}
+{{- else -}}
 {{ .Values.global.image.repository }}:{{ .Values.global.image.tag }}
+{{- end -}}
 {{- end }}
 
 {{/*
