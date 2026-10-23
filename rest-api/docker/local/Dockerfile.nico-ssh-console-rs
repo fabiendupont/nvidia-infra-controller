@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Dev-only Dockerfile. Build context: repo root.
+ARG RUST_VERSION=1.97.1
+FROM rust:${RUST_VERSION}-slim-bookworm AS builder
+RUN apt-get update && apt-get install -y \
+    pkg-config libssl-dev libpq-dev ca-certificates protobuf-compiler \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /repo
+COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
+COPY .cargo/ .cargo/
+COPY crates/ crates/
+COPY pxe/ pxe/
+RUN cargo build --package carbide-ssh-console --bin ssh-console --release \
+    && strip target/release/ssh-console
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y libssl3 libpq5 ca-certificates && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /repo/target/release/ssh-console /opt/nico/ssh-console
+ENTRYPOINT ["/opt/nico/ssh-console"]

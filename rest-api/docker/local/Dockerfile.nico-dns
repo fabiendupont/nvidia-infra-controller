@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Dev-only Dockerfile. Build context: repo root.
+ARG RUST_VERSION=1.97.1
+FROM rust:${RUST_VERSION}-slim-bookworm AS builder
+RUN apt-get update && apt-get install -y \
+    pkg-config libssl-dev libpq-dev ca-certificates protobuf-compiler \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /repo
+COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
+COPY .cargo/ .cargo/
+COPY crates/ crates/
+COPY pxe/ pxe/
+RUN cargo build --package carbide-dns --release \
+    && strip target/release/carbide-dns
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y libssl3 libpq5 ca-certificates && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /repo/target/release/carbide-dns /opt/nico/nico-dns
+ENTRYPOINT ["/opt/nico/nico-dns"]

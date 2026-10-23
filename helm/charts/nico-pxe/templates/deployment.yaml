@@ -116,7 +116,7 @@ spec:
                 FD_LIMIT="$FD_HARD"
               fi
               ulimit -Sn "$FD_LIMIT" || { echo "ulimit -Sn ${FD_LIMIT} failed (requested ${FD_REQUESTED}, hard limit ${FD_HARD})" >&2; exit 1; }
-              if [ -x /opt/nico/nico ]; then BIN=/opt/nico/nico; else BIN=/opt/carbide/carbide; fi
+              if [ -x /opt/nico/nico-pxe ]; then BIN=/opt/nico/nico-pxe; else BIN=/opt/carbide/carbide; fi
               exec "$BIN" -s {{ .Values.bootArtifacts.servePath }}
           env:
             {{- range $key, $value := $env }}
