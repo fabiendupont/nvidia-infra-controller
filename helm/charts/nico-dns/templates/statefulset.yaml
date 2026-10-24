@@ -26,13 +26,13 @@ spec:
       containers:
         - name: {{ include "nico-dns.name" . }}
           image: "{{ include "nico-dns.image" . }}"
-          # Picks {{ include "nico-dns.name" . }} (--nico-url) or carbide-dns (--carbide-url) based on which binary is in the image.
+          # Picks {{ include "nico-dns.name" . }} (--api-uri) or carbide-dns (--carbide-url) based on which binary is in the image.
           command:
             - /bin/sh
             - -c
             - |
               if [ -x /opt/nico/nico-dns ]; then
-                exec /opt/nico/nico-dns run --nico-url="${NICO_API}" --listen={{ .Values.listenAddress | default "[::]:53" | quote }}
+                exec /opt/nico/nico-dns run --api-uri="${NICO_API}" --listen={{ .Values.listenAddress | default "[::]:53" | quote }}
               else
                 exec /opt/carbide/carbide-dns run --carbide-url="${NICO_API}" --listen={{ .Values.listenAddress | default "[::]:53" | quote }}
               fi
