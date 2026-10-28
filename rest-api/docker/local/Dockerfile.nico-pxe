@@ -18,4 +18,8 @@ RUN cargo build --package carbide-pxe --bin carbide --release \
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y libssl3 libpq5 ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /repo/target/release/carbide /opt/nico/nico-pxe
+# Tera templates loaded at runtime by CARBIDE_PXE_TEMPLATE_DIRECTORY (default
+# /opt/carbide/pxe/templates); without them every boot render fails with
+# "Template 'pxe' not found".
+COPY pxe/templates/ /opt/carbide/pxe/templates/
 ENTRYPOINT ["/opt/nico/nico-pxe"]
