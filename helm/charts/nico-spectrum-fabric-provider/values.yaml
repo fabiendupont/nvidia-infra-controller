@@ -41,7 +41,7 @@ resources:
 certificate:
   enabled: true
   name: nico-spectrum-fabric-provider-certs
-  secretName: nico-nvswitch-provider-certs
+  secretName: nico-spectrum-fabric-provider-certs
   duration: 720h
   renewBefore: 360h
   subject:
